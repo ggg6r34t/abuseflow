@@ -1,0 +1,61 @@
+{
+  "manifest_version": 3,
+  "name": "AbuseFlow",
+  "version": "1.0.0",
+  "description": "Human-controlled compliance autofill assistant for abuse forms.",
+  "icons": {
+    "16": "public/icons/icon16.png",
+    "32": "public/icons/icon32.png",
+    "48": "public/icons/icon48.png",
+    "128": "public/icons/icon128.png"
+  },
+  "action": {
+    "default_title": "AbuseFlow",
+    "default_popup": "public/popup.html",
+    "default_icon": {
+      "16": "public/icons/icon16.png",
+      "32": "public/icons/icon32.png",
+      "48": "public/icons/icon48.png"
+    }
+  },
+  "options_page": "public/options.html",
+  "permissions": ["storage", "activeTab", "tabs"],
+  "host_permissions": [
+    "https://*.facebook.com/*",
+    "https://help.instagram.com/*",
+    "https://www.namesilo.com/*",
+    "https://help.x.com/*",
+    "https://abuse.cloudflare.com/*",
+    "https://ipr.tiktokforbusiness.com/*",
+    "https://www.hostinger.com/*",
+    "https://www.dynadot.com/*",
+    "https://support.google.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.facebook.com/help/contact*",
+        "https://help.instagram.com/contact/*",
+        "https://www.namesilo.com/report_abuse.php*",
+        "https://help.x.com/en/forms/ipi/trademark/auth-to-rep*",
+        "https://abuse.cloudflare.com/trademark*",
+        "https://ipr.tiktokforbusiness.com/legal/report/Trademark*",
+        "https://www.hostinger.com/report-abuse*",
+        "https://www.dynadot.com/report-abuse*",
+        "https://support.google.com/sites/contact/corporate_impersonation*"
+      ],
+      "js": ["content-script.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["public/icons/button_icon48.png"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
