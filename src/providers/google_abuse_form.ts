@@ -54,7 +54,7 @@ export const googleAbuseFormProvider: ProviderModule = {
     if (phoneField && !phoneField.id) {
       phoneField.id = "abuseflow-google-phone-input";
     }
-    if (phoneField?.id && safeFillIfVisible(`#${CSS.escape(phoneField.id)}`, "")) {
+    if (phoneField?.id && safeFillIfVisible(`#${CSS.escape(phoneField.id)}`, payload.analyst.phone ?? "")) {
       filledCount += 1;
     }
 

@@ -1,5 +1,20 @@
 import type { ProviderId } from "../providers";
 
+function isXTrademarkFormUrl(url: string): boolean {
+  const normalized = url.toLowerCase();
+  const isXHelpHost =
+    normalized.includes("help.x.com") ||
+    normalized.includes("help.twitter.com");
+  if (!isXHelpHost) {
+    return false;
+  }
+  return (
+    normalized.includes("/forms/ipi/trademark/") ||
+    normalized.includes("/content/help-twitter/en/forms/ipi/trademark/") ||
+    normalized.includes("help.x.com/en/forms/ipi/trademark/auth-to-rep")
+  );
+}
+
 export function detectProviderFromUrl(url: string): ProviderId | null {
   if (url.includes("facebook.com/help/contact")) {
     return "facebook_abuse_form";
@@ -10,7 +25,7 @@ export function detectProviderFromUrl(url: string): ProviderId | null {
   if (url.includes("namesilo.com/report_abuse.php")) {
     return "namesilo_abuse_form";
   }
-  if (url.includes("help.x.com/en/forms/ipi/trademark/auth-to-rep")) {
+  if (isXTrademarkFormUrl(url)) {
     return "x_abuse_form";
   }
   if (url.includes("abuse.cloudflare.com/trademark")) {
@@ -25,7 +40,9 @@ export function detectProviderFromUrl(url: string): ProviderId | null {
   if (url.includes("dynadot.com/report-abuse")) {
     return "dynadot_abuse_form";
   }
-  if (url.includes("support.google.com/sites/contact/corporate_impersonation")) {
+  if (
+    url.includes("support.google.com/sites/contact/corporate_impersonation")
+  ) {
     return "google_abuse_form";
   }
   return null;

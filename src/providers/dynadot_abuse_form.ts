@@ -72,7 +72,7 @@ export const dynadotAbuseFormProvider: ProviderModule = {
       filledCount += 1;
     }
 
-    if (safeFillInputByNames(phoneCandidates, "")) {
+    if (safeFillInputByNames(phoneCandidates, payload.analyst.phone ?? "")) {
       filledCount += 1;
     }
 

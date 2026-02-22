@@ -24,6 +24,7 @@ function createEmptyClient(): ClientProfile {
     registrationNumber: "",
     jurisdiction: "",
     trademarkUrl: "",
+    xHandle: "",
     defaultDescriptionTemplate: defaultTemplate
   };
 }
@@ -99,6 +100,7 @@ export function ClientManager(props: ClientManagerProps): JSX.Element {
       registrationNumber: editing.registrationNumber.trim(),
       jurisdiction: editing.jurisdiction.trim(),
       trademarkUrl: editing.trademarkUrl?.trim() ?? "",
+      xHandle: editing.xHandle?.trim() ?? "",
       defaultDescriptionTemplate: editing.defaultDescriptionTemplate.trim()
     };
 
@@ -222,6 +224,13 @@ export function ClientManager(props: ClientManagerProps): JSX.Element {
         placeholder="Trademark URL (optional)"
         value={editing.trademarkUrl ?? ""}
         onChange={(event) => update("trademarkUrl", event.target.value)}
+        disabled={isLoading || isSaving || isDeleting}
+        style={{ padding: "8px", borderRadius: "8px", border: "1px solid #c9c9c9" }}
+      />
+      <input
+        placeholder="Client X handle (optional, e.g. @brand)"
+        value={editing.xHandle ?? ""}
+        onChange={(event) => update("xHandle", event.target.value)}
         disabled={isLoading || isSaving || isDeleting}
         style={{ padding: "8px", borderRadius: "8px", border: "1px solid #c9c9c9" }}
       />

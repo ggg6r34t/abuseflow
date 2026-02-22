@@ -1,6 +1,7 @@
 export interface AnalystProfile {
   fullName: string;
   email: string;
+  phone?: string;
   company?: string;
   companyAddress?: string;
   signature: string;
@@ -13,6 +14,7 @@ export interface ClientProfile {
   registrationNumber: string;
   jurisdiction: string;
   trademarkUrl?: string;
+  xHandle?: string;
   defaultDescriptionTemplate: string;
 }
 
@@ -40,6 +42,7 @@ function normalizeAnalystProfile(value: unknown): AnalystProfile | null {
   const fullName = toTrimmedString(value.fullName);
   const email = toTrimmedString(value.email);
   const signature = toTrimmedString(value.signature);
+  const phone = toTrimmedString(value.phone || value.phoneNumber);
   const company = toTrimmedString(value.company || value.organization);
   const companyAddress = toTrimmedString(value.companyAddress);
 
@@ -52,6 +55,9 @@ function normalizeAnalystProfile(value: unknown): AnalystProfile | null {
     email,
     signature
   };
+  if (phone) {
+    normalized.phone = phone;
+  }
   if (company) {
     normalized.company = company;
   }
@@ -72,6 +78,7 @@ function normalizeClientProfile(value: unknown): ClientProfile | null {
   const registrationNumber = toTrimmedString(value.registrationNumber);
   const jurisdiction = toTrimmedString(value.jurisdiction);
   const trademarkUrl = toTrimmedString(value.trademarkUrl);
+  const xHandle = toTrimmedString(value.xHandle || value.twitterHandle || value.xUsername);
   const defaultDescriptionTemplate = toTrimmedString(value.defaultDescriptionTemplate);
 
   if (!id || !clientName || !trademarkName || !registrationNumber || !jurisdiction || !defaultDescriptionTemplate) {
@@ -88,6 +95,9 @@ function normalizeClientProfile(value: unknown): ClientProfile | null {
   };
   if (trademarkUrl) {
     normalized.trademarkUrl = trademarkUrl;
+  }
+  if (xHandle) {
+    normalized.xHandle = xHandle;
   }
   return normalized;
 }

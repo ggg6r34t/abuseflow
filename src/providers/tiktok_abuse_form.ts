@@ -77,7 +77,7 @@ export const tiktokAbuseFormProvider: ProviderModule = {
     if (safeFillIfEnabled(findInputInSection("address"), payload.analyst.companyAddress ?? "")) {
       filledCount += 1;
     }
-    if (safeFillIfEnabled(findInputInSection("phoneNumber"), "")) {
+    if (safeFillIfEnabled(findInputInSection("phoneNumber"), payload.analyst.phone ?? "")) {
       filledCount += 1;
     }
 

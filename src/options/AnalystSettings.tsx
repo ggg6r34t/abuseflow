@@ -4,6 +4,7 @@ import { getAnalystProfile, saveAnalystProfile, type AnalystProfile } from "../s
 const emptyAnalyst: AnalystProfile = {
   fullName: "",
   email: "",
+  phone: "",
   company: "",
   companyAddress: "",
   signature: ""
@@ -51,6 +52,7 @@ export function AnalystSettings(props: AnalystSettingsProps): JSX.Element {
     const normalized: AnalystProfile = {
       fullName: form.fullName.trim(),
       email: form.email.trim(),
+      phone: form.phone?.trim() ?? "",
       company: form.company?.trim() ?? "",
       companyAddress: form.companyAddress?.trim() ?? "",
       signature: form.signature.trim()
@@ -102,6 +104,16 @@ export function AnalystSettings(props: AnalystSettingsProps): JSX.Element {
           placeholder="Email"
           value={form.email}
           onChange={(event) => update("email", event.target.value)}
+          disabled={isLoading || isSaving}
+          style={{ padding: "8px", borderRadius: "8px", border: "1px solid #c9c9c9" }}
+        />
+      </label>
+      <label style={{ display: "grid", gap: "4px", fontSize: "13px" }}>
+        <span>Phone (Optional)</span>
+        <input
+          placeholder="Phone number (optional)"
+          value={form.phone ?? ""}
+          onChange={(event) => update("phone", event.target.value)}
           disabled={isLoading || isSaving}
           style={{ padding: "8px", borderRadius: "8px", border: "1px solid #c9c9c9" }}
         />

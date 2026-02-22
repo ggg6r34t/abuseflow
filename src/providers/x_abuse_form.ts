@@ -2,25 +2,25 @@ import type { ProviderModule } from "./index";
 import { findInputByNames, findSelectByNames, findTextareaByNames } from "../utils/domHelpers";
 import { isElementVisible, safeFillIfVisible, safeSelectOption } from "../utils/safeFill";
 
-const fullNameCandidates = ["_-404431659@name"];
-const jobTitleCandidates = ["_-404431659@job-title"];
-const companyCandidates = ["_-404431659@company"];
-const companyWebsiteCandidates = ["_-404431659@company-website"];
-const emailCandidates = ["_-404431659@Form_Email__c"];
-const phoneCandidates = ["_-404431659@SuppliedPhone"];
-const platformCandidates = ["_1691786258@Type_of_Issue__c"];
-const reportedUsernameCandidates = ["_1691786258@Reported_Screen_Name__c"];
-const detailsCandidates = ["_1691786258@DescriptionText"];
-const trademarkHolderNameCandidates = ["_-1945608478@Content_Owner_Name__c"];
-const trademarkHolderAddressCandidates = ["_-1945608478@trademark-holder-address"];
-const trademarkHolderCountryCandidates = ["_-1945608478@trademark-holder-country"];
-const trademarkHolderWebsiteCandidates = ["_-1945608478@trademark-holder-website"];
-const trademarkHolderUsernameCandidates = ["_-1945608478@trademark-holder-username"];
-const trademarkWordCandidates = ["_-952722188@trademark-word"];
-const trademarkRegNumberCandidates = ["_-952722188@Registration_Number__c"];
-const trademarkClassCandidates = ["_-952722188@trademark-class"];
-const regOfficeCandidates = ["_-952722188@reg-office"];
-const trademarkLinkCandidates = ["_-952722188@trademark-link"];
+const fullNameCandidates = ["_1660688133@Form_Name__c", "_-404431659@name"];
+const jobTitleCandidates = ["_1660688133@job-title", "_-404431659@job-title"];
+const companyCandidates = ["_1660688133@company", "_-404431659@company"];
+const companyWebsiteCandidates = ["_1660688133@company-website", "_-404431659@company-website"];
+const emailCandidates = ["_1660688133@Form_Email__c", "_-404431659@Form_Email__c"];
+const phoneCandidates = ["_1660688133@SuppliedPhone", "_-404431659@SuppliedPhone"];
+const platformCandidates = ["_1046311997@Type_of_Issue__c", "_1691786258@Type_of_Issue__c"];
+const reportedUsernameCandidates = ["_1046311997@Reported_Screen_Name__c", "_1691786258@Reported_Screen_Name__c"];
+const detailsCandidates = ["_1046311997@DescriptionText", "_1691786258@DescriptionText"];
+const trademarkHolderNameCandidates = ["_-1737788478@Content_Owner_Name__c", "_-1945608478@Content_Owner_Name__c"];
+const trademarkHolderAddressCandidates = ["_-1737788478@trademark-holder-address", "_-1945608478@trademark-holder-address"];
+const trademarkHolderCountryCandidates = ["_-1737788478@trademark-holder-country", "_-1945608478@trademark-holder-country"];
+const trademarkHolderWebsiteCandidates = ["_-1737788478@trademark-holder-website", "_-1945608478@trademark-holder-website"];
+const trademarkHolderUsernameCandidates = ["_-1737788478@trademark-holder-username", "_-1945608478@trademark-holder-username"];
+const trademarkWordCandidates = ["_-1448987698@trademark-word", "_-952722188@trademark-word"];
+const trademarkRegNumberCandidates = ["_-1448987698@Registration_Number__c", "_-952722188@Registration_Number__c"];
+const trademarkClassCandidates = ["_-1448987698@trademark-class", "_-952722188@trademark-class"];
+const regOfficeCandidates = ["_-1448987698@reg-office", "_-952722188@reg-office"];
+const trademarkLinkCandidates = ["_-1448987698@trademark-link", "_-952722188@trademark-link"];
 const confirmationCheckboxCandidates = ["confirm-1", "confirm-2", "confirm-3"];
 
 function safeCheckRadioByNameValue(name: string, value: string): boolean {
@@ -90,6 +90,10 @@ function normalizeProfileUrl(url: string): string {
   return withProtocol;
 }
 
+function normalizeHandle(value: string): string {
+  return value.trim().replace(/^@+/, "");
+}
+
 function extractUsername(urls: string[]): string {
   for (const rawUrl of urls) {
     const normalized = normalizeProfileUrl(rawUrl);
@@ -110,7 +114,7 @@ function extractUsername(urls: string[]): string {
       if (first.toLowerCase() === "i" || first.toLowerCase() === "home") {
         continue;
       }
-      return first.replace(/^@/, "");
+      return normalizeHandle(first);
     } catch {
       continue;
     }
@@ -127,16 +131,29 @@ function pickWebsite(clientWebsite: string | undefined, urls: string[]): string 
   return normalizeProfileUrl(firstUrl);
 }
 
+function isXTrademarkFormUrl(url: string): boolean {
+  const normalized = url.toLowerCase();
+  const isXHelpHost = normalized.includes("help.x.com") || normalized.includes("help.twitter.com");
+  if (!isXHelpHost) {
+    return false;
+  }
+  return (
+    normalized.includes("/forms/ipi/trademark/") ||
+    normalized.includes("/content/help-twitter/en/forms/ipi/trademark/")
+  );
+}
+
 export const xAbuseFormProvider: ProviderModule = {
   id: "x_abuse_form",
   isMatch(url: string): boolean {
-    return url.includes("help.x.com/en/forms/ipi/trademark/auth-to-rep");
+    return isXTrademarkFormUrl(url);
   },
   autofill(payload): number {
     let filledCount = 0;
 
     const defaultWebsite = pickWebsite(payload.client.trademarkUrl, payload.urls);
     const reportedUsername = extractUsername(payload.urls);
+    const clientHandle = normalizeHandle(payload.client.xHandle ?? "");
 
     const fullNameField = findInputByNames(fullNameCandidates);
     if (safeFillBySelector(selectorForField(fullNameField), payload.analyst.fullName)) {
@@ -164,7 +181,7 @@ export const xAbuseFormProvider: ProviderModule = {
     }
 
     const phoneField = findInputByNames(phoneCandidates);
-    if (safeFillBySelector(selectorForField(phoneField), "")) {
+    if (safeFillBySelector(selectorForField(phoneField), payload.analyst.phone ?? "")) {
       filledCount += 1;
     }
 
@@ -206,7 +223,7 @@ export const xAbuseFormProvider: ProviderModule = {
     }
 
     const holderUsernameField = findInputByNames(trademarkHolderUsernameCandidates);
-    if (safeFillBySelector(selectorForField(holderUsernameField), reportedUsername ? `@${reportedUsername}` : "")) {
+    if (safeFillBySelector(selectorForField(holderUsernameField), clientHandle ? `@${clientHandle}` : "")) {
       filledCount += 1;
     }
 
