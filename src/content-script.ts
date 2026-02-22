@@ -1,4 +1,5 @@
 import { getProviderById, type AutofillPayload, type ProviderId } from "./providers";
+import { consumeFacebookAdditionalLinksAutoExpanded } from "./providers/facebook_abuse_form";
 import { getAnalystProfile, listClientProfiles, type ClientProfile } from "./storage/profileStore";
 import { renderTemplate } from "./utils/templateEngine";
 import { detectProviderFromUrl, parseUrls } from "./utils/urlDetector";
@@ -311,7 +312,9 @@ async function handlePanelAutofill(): Promise<void> {
       description
     });
 
-    setPanelStatus(`Autofill completed. ${filledCount} field(s) updated.`, "success");
+    const facebookExpanded = providerId === "facebook_abuse_form" && consumeFacebookAdditionalLinksAutoExpanded();
+    const expandedNote = facebookExpanded ? " Additional link fields were auto-expanded." : "";
+    setPanelStatus(`Autofill completed. ${filledCount} field(s) updated.${expandedNote}`, "success");
   } catch {
     setPanelStatus("Unable to autofill this form.", "error");
   } finally {

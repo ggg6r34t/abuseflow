@@ -23,6 +23,14 @@ const trademarkUrlCandidates = ["TM_URL", "trademark_url"];
 const descriptionCandidates = ["why_reporting_other", "description", "details", "additional_info"];
 const addressCandidates = ["Address", "address", "mailing_address"];
 const signatureCandidates = ["electronic_signature", "signature"];
+const additionalLinksCandidates = ["additionallinks[]", "additionallinks"];
+let didAutoExpandAdditionalLinks = false;
+
+export function consumeFacebookAdditionalLinksAutoExpanded(): boolean {
+  const value = didAutoExpandAdditionalLinks;
+  didAutoExpandAdditionalLinks = false;
+  return value;
+}
 
 function safeCheckRadioByNameValue(name: string, value: string): boolean {
   const radios = Array.from(document.querySelectorAll<HTMLInputElement>(`input[type="radio"][name="${CSS.escape(name)}"]`));
@@ -64,6 +72,93 @@ function safeFillBySelector(selector: string | null, value: string): boolean {
     return false;
   }
   return safeFillIfVisible(selector, value);
+}
+
+function safeCheckAdditionalLinksCheckbox(): boolean {
+  for (const name of additionalLinksCandidates) {
+    const checkboxes = Array.from(
+      document.querySelectorAll<HTMLInputElement>(`input[type="checkbox"][name="${CSS.escape(name)}"]`)
+    ).filter((checkbox) => isElementVisible(checkbox) && !checkbox.disabled);
+    const target = checkboxes.find((checkbox) => !checkbox.checked);
+    if (!target) {
+      continue;
+    }
+    target.focus();
+    target.click();
+    target.dispatchEvent(new Event("input", { bubbles: true }));
+    target.dispatchEvent(new Event("change", { bubbles: true }));
+    return true;
+  }
+
+  const fallback = findFieldByLabelText(["i have additional links to report"]);
+  if (!(fallback instanceof HTMLInputElement) || fallback.type !== "checkbox") {
+    return false;
+  }
+  if (!isElementVisible(fallback) || fallback.disabled || fallback.checked) {
+    return false;
+  }
+  fallback.focus();
+  fallback.click();
+  fallback.dispatchEvent(new Event("input", { bubbles: true }));
+  fallback.dispatchEvent(new Event("change", { bubbles: true }));
+  return true;
+}
+
+function contentUrlFieldOrder(name: string): number {
+  if (name === "content_urls") {
+    return 0;
+  }
+  const match = /^content_urls(\d+)$/.exec(name);
+  if (!match) {
+    return Number.MAX_SAFE_INTEGER;
+  }
+  const suffix = match[1];
+  if (!suffix) {
+    return Number.MAX_SAFE_INTEGER;
+  }
+  return Number.parseInt(suffix, 10) + 1;
+}
+
+function getVisibleOrderedContentUrlFields(): Array<HTMLInputElement | HTMLTextAreaElement> {
+  const urlInputs = findInputsByNamePrefix("content_urls");
+  const urlTextareas = findTextareasByNamePrefix("content_urls");
+  return (urlTextareas.length > 0 ? urlTextareas : urlInputs)
+    .filter((field) => isElementVisible(field) && !field.disabled)
+    .sort((a, b) => {
+      const orderDelta = contentUrlFieldOrder(a.name) - contentUrlFieldOrder(b.name);
+      return orderDelta !== 0 ? orderDelta : a.name.localeCompare(b.name);
+    });
+}
+
+function fillUrlsIntoFields(
+  urls: string[],
+  startIndex: number,
+  fields: Array<HTMLInputElement | HTMLTextAreaElement>
+): { filledCount: number; nextUrlIndex: number } {
+  let filledCount = 0;
+  let urlIndex = startIndex;
+  let fieldIndex = 0;
+
+  while (urlIndex < urls.length && fieldIndex < fields.length) {
+    const url = urls[urlIndex]?.trim() ?? "";
+    if (!url) {
+      urlIndex += 1;
+      continue;
+    }
+
+    const field = fields[fieldIndex];
+    fieldIndex += 1;
+    if (!field) {
+      break;
+    }
+
+    if (safeFillBySelector(selectorForField(field), url)) {
+      filledCount += 1;
+      urlIndex += 1;
+    }
+  }
+
+  return { filledCount, nextUrlIndex: urlIndex };
 }
 
 function fillPrimaryFields(payload: Parameters<ProviderModule["autofill"]>[0]): number {
@@ -170,31 +265,27 @@ function fillPrimaryFields(payload: Parameters<ProviderModule["autofill"]>[0]): 
 }
 
 function fillUrlFields(urls: string[]): number {
-  if (urls.length === 0) {
+  const normalizedUrls = urls.map((url) => url.trim()).filter((url) => url.length > 0);
+  if (normalizedUrls.length === 0) {
     return 0;
   }
 
-  let filledCount = 0;
-  const urlInputs = findInputsByNamePrefix("content_urls");
-  const urlTextareas = findTextareasByNamePrefix("content_urls");
-  const urlFields: Array<HTMLInputElement | HTMLTextAreaElement> =
-    urlTextareas.length > 0 ? urlTextareas : urlInputs;
+  let totalFilledCount = 0;
+  let nextUrlIndex = 0;
 
-  if (urlFields.length > 0) {
-    for (let index = 0; index < urls.length; index += 1) {
-      const field = urlFields[index];
-      const url = urls[index];
-      if (!field) {
-        break;
-      }
-      if (!url) {
-        continue;
-      }
-      if (safeFillBySelector(selectorForField(field), url)) {
-        filledCount += 1;
-      }
-    }
-    return filledCount;
+  const firstPass = fillUrlsIntoFields(normalizedUrls, nextUrlIndex, getVisibleOrderedContentUrlFields());
+  totalFilledCount += firstPass.filledCount;
+  nextUrlIndex = firstPass.nextUrlIndex;
+
+  if (nextUrlIndex < normalizedUrls.length && safeCheckAdditionalLinksCheckbox()) {
+    didAutoExpandAdditionalLinks = true;
+    const secondPass = fillUrlsIntoFields(normalizedUrls, nextUrlIndex, getVisibleOrderedContentUrlFields());
+    totalFilledCount += secondPass.filledCount;
+    nextUrlIndex = secondPass.nextUrlIndex;
+  }
+
+  if (totalFilledCount > 0) {
+    return totalFilledCount;
   }
 
   const fallbackField =
@@ -202,7 +293,7 @@ function fillUrlFields(urls: string[]): number {
       | HTMLInputElement
       | HTMLTextAreaElement
       | null);
-  if (safeFillBySelector(selectorForField(fallbackField), urls.join("\n"))) {
+  if (safeFillBySelector(selectorForField(fallbackField), normalizedUrls.join("\n"))) {
     return 1;
   }
   return 0;
@@ -214,6 +305,7 @@ export const facebookAbuseFormProvider: ProviderModule = {
     return url.includes("facebook.com/help/contact");
   },
   autofill(payload): number {
+    didAutoExpandAdditionalLinks = false;
     const primaryCount = fillPrimaryFields(payload);
     const urlCount = fillUrlFields(payload.urls);
     return primaryCount + urlCount;
