@@ -1,5 +1,10 @@
 # AbuseFlow
 
+![Manifest V3](https://img.shields.io/badge/Chrome-Manifest%20V3-4285F4)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6)
+![React](https://img.shields.io/badge/React-18-61DAFB)
+![License](https://img.shields.io/badge/License-Internal%2FPrivate-lightgrey)
+
 AbuseFlow is a browser extension that streamlines repetitive abuse form submissions for analysts, CERT teams, and brand protection professionals. It autofills common fields across abuse and legal report forms while keeping analysts fully in control of submission.
 
 ## Overview
@@ -66,6 +71,20 @@ Each platform form is handled via isolated provider modules:
 - Field mapping per form structure
 - Safe, repeatable autofill logic
 - No hardcoded global automation
+
+### Supported Providers
+
+| Provider | Module | Status |
+|---|---|---|
+| Facebook | `src/providers/facebook_abuse_form.ts` | Supported |
+| Instagram | `src/providers/instagram_abuse_form.ts` | Supported |
+| TikTok | `src/providers/tiktok_abuse_form.ts` | Supported |
+| Google | `src/providers/google_abuse_form.ts` | Supported |
+| Cloudflare | `src/providers/cloudflare_abuse_form.ts` | Supported |
+| Dynadot | `src/providers/dynadot_abuse_form.ts` | Supported |
+| NameSilo | `src/providers/namesilo_abuse_form.ts` | Supported |
+| Hostinger | `src/providers/hostinger_abuse_form.ts` | Supported |
+| Generic / Fallback (`x`) | `src/providers/x_abuse_form.ts` | Supported |
 
 ## Multi-Step Form Support
 
