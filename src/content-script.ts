@@ -1,5 +1,6 @@
 import { getProviderById, type AutofillPayload, type ProviderId } from "./providers";
 import { consumeFacebookAdditionalLinksAutoExpanded } from "./providers/facebook_abuse_form";
+import { appendRunRecord, getFeatureFlags } from "./storage/appStateStore";
 import { getAnalystProfile, listClientProfiles, type ClientProfile } from "./storage/profileStore";
 import { buildAutofillPayload } from "./utils/autofillPayload";
 import { detectProviderFromUrl } from "./utils/urlDetector";
@@ -23,11 +24,19 @@ interface SetDebugModeRequestMessage {
   enabled: boolean;
 }
 
+interface RerunFromHistoryRequestMessage {
+  type: "ABUSEFLOW_RERUN_FROM_HISTORY";
+  providerId: ProviderId;
+  clientId: string;
+  urlsText: string;
+}
+
 type ContentScriptMessage =
   | AutofillRequestMessage
   | OpenPanelRequestMessage
   | PanelSnapshotRequestMessage
-  | SetDebugModeRequestMessage;
+  | SetDebugModeRequestMessage
+  | RerunFromHistoryRequestMessage;
 
 interface AutofillResponseMessage {
   ok: boolean;
@@ -47,6 +56,7 @@ interface PanelSnapshot {
   statusMessage: string;
   statusTone: "info" | "error" | "success" | "";
   selectedClientId: string;
+  draftUrlsText: string;
   debugMode: boolean;
   lastRun: {
     ok: boolean;
@@ -191,6 +201,10 @@ function createPanel(): HTMLDivElement {
   urlTextarea.rows = 4;
   urlTextarea.placeholder = "One URL per line";
 
+  const urlHint = document.createElement("div");
+  urlHint.className = "abuseflow-hint";
+  urlHint.textContent = "Tip: paste one URL per line, then run autofill for the current step.";
+
   const autofillButton = document.createElement("button");
   autofillButton.id = ABUSEFLOW_AUTOFILL_BUTTON_ID;
   autofillButton.type = "button";
@@ -207,6 +221,7 @@ function createPanel(): HTMLDivElement {
   panel.appendChild(clientSelect);
   panel.appendChild(urlLabel);
   panel.appendChild(urlTextarea);
+  panel.appendChild(urlHint);
   panel.appendChild(autofillButton);
   panel.appendChild(status);
 
@@ -295,6 +310,7 @@ function getPanelSnapshot(): PanelSnapshot {
     statusMessage: status?.textContent ?? "",
     statusTone,
     selectedClientId,
+    draftUrlsText: getElementById(ABUSEFLOW_URL_INPUT_ID, HTMLTextAreaElement)?.value ?? "",
     debugMode: isDebugMode(),
     lastRun: lastAutofillReport
   };
@@ -316,6 +332,45 @@ function runAutofillForProvider(providerId: ProviderId, payload: AutofillPayload
   }
 
   return { filledCount, notes };
+}
+
+function getMissingRequiredInputs(payload: AutofillPayload, providerId: ProviderId): string[] {
+  const missing: string[] = [];
+  if (!payload.analyst.fullName.trim()) {
+    missing.push("Analyst full name");
+  }
+  if (!payload.analyst.email.trim()) {
+    missing.push("Analyst email");
+  }
+  if (!payload.analyst.signature.trim()) {
+    missing.push("Analyst signature");
+  }
+  if (!payload.client.clientName.trim()) {
+    missing.push("Client name");
+  }
+  if (!payload.client.trademarkName.trim()) {
+    missing.push("Trademark name");
+  }
+  if (!payload.client.registrationNumber.trim()) {
+    missing.push("Trademark registration number");
+  }
+  if (!payload.client.jurisdiction.trim()) {
+    missing.push("Jurisdiction");
+  }
+  if (payload.urls.length === 0) {
+    missing.push("At least one URL");
+  }
+
+  if (providerId === "x_abuse_form") {
+    if (!payload.analyst.phone?.trim()) {
+      missing.push("Analyst phone (required on some X form variants)");
+    }
+    if (!payload.client.xHandle?.trim()) {
+      missing.push("Client X handle (recommended for X provider)");
+    }
+  }
+
+  return missing;
 }
 
 function populateClientOptions(clients: ClientProfile[]): void {
@@ -343,6 +398,19 @@ function populateClientOptions(clients: ClientProfile[]): void {
   selectedClientId = hasPreviousSelection ? previousId : "";
   clientSelect.value = selectedClientId;
   clientSelect.disabled = isPanelBusy || clients.length === 0;
+  updateAutofillButtonState();
+}
+
+function hydratePanelDraft(clientId: string, urlsText: string): void {
+  const clientSelect = getElementById(ABUSEFLOW_CLIENT_SELECT_ID, HTMLSelectElement);
+  const urlTextarea = getElementById(ABUSEFLOW_URL_INPUT_ID, HTMLTextAreaElement);
+  if (clientSelect && Array.from(clientSelect.options).some((option) => option.value === clientId)) {
+    clientSelect.value = clientId;
+    selectedClientId = clientId;
+  }
+  if (urlTextarea) {
+    urlTextarea.value = urlsText;
+  }
   updateAutofillButtonState();
 }
 
@@ -404,7 +472,36 @@ async function handlePanelAutofill(): Promise<void> {
     }
 
     const urlTextarea = getElementById(ABUSEFLOW_URL_INPUT_ID, HTMLTextAreaElement);
-    const payload = buildAutofillPayload(analyst, client, urlTextarea?.value ?? "");
+    const urlsText = urlTextarea?.value ?? "";
+    const payload = buildAutofillPayload(analyst, client, urlsText);
+    const flags = await getFeatureFlags();
+    const missingRequired = getMissingRequiredInputs(payload, providerId);
+    if (flags.enableSafetyGuardrails && missingRequired.length > 0) {
+      const errorMessage = `Missing required data: ${missingRequired.join(", ")}.`;
+      lastAutofillReport = {
+        ok: false,
+        providerId,
+        filledCount: 0,
+        notes: [],
+        durationMs: Date.now() - startedAt,
+        timestampMs: Date.now(),
+        error: errorMessage
+      };
+      await appendRunRecord({
+        providerId,
+        pageUrl: window.location.href,
+        clientId: client.id,
+        urlsText,
+        ok: false,
+        filledCount: 0,
+        notes: [],
+        durationMs: Date.now() - startedAt,
+        timestampMs: Date.now(),
+        error: errorMessage
+      });
+      setPanelStatus(errorMessage, "error");
+      return;
+    }
     const { filledCount, notes } = runAutofillForProvider(providerId, payload);
 
     if (isDebugMode()) {
@@ -418,6 +515,17 @@ async function handlePanelAutofill(): Promise<void> {
       durationMs: Date.now() - startedAt,
       timestampMs: Date.now()
     };
+    await appendRunRecord({
+      providerId,
+      pageUrl: window.location.href,
+      clientId: client.id,
+      urlsText,
+      ok: true,
+      filledCount,
+      notes,
+      durationMs: Date.now() - startedAt,
+      timestampMs: Date.now()
+    });
     const notesSuffix = notes.length > 0 ? ` ${notes.join(" ")}` : "";
     setPanelStatus(`Autofill completed. ${filledCount} field(s) updated.${notesSuffix}`, "success");
   } catch (error) {
@@ -431,6 +539,18 @@ async function handlePanelAutofill(): Promise<void> {
       timestampMs: Date.now(),
       error: message
     };
+    await appendRunRecord({
+      providerId,
+      pageUrl: window.location.href,
+      clientId: selectedClientId,
+      urlsText: getElementById(ABUSEFLOW_URL_INPUT_ID, HTMLTextAreaElement)?.value ?? "",
+      ok: false,
+      filledCount: 0,
+      notes: [],
+      durationMs: Date.now() - startedAt,
+      timestampMs: Date.now(),
+      error: message
+    });
     setPanelStatus(message, "error");
   } finally {
     setPanelBusyState(false);
@@ -510,8 +630,9 @@ function injectStyles(): void {
       max-width: calc(100vw - 24px);
       padding: 12px;
       border-radius: 12px;
-      background: #ffffff;
-      box-shadow: 0 10px 28px rgba(15, 23, 42, 0.22);
+      background: linear-gradient(180deg, #ffffff 0%, #f9fbff 100%);
+      border: 1px solid #d4e2f4;
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.2);
       z-index: ${MAX_FLOATING_Z_INDEX};
       box-sizing: border-box;
       font-family: "Segoe UI", Arial, sans-serif;
@@ -531,6 +652,7 @@ function injectStyles(): void {
     #${ABUSEFLOW_PANEL_ID} .abuseflow-title {
       font-size: 14px;
       font-weight: 700;
+      color: #0c3b85;
     }
     #${ABUSEFLOW_PANEL_ID} .abuseflow-link-button {
       border: none;
@@ -549,18 +671,24 @@ function injectStyles(): void {
     #${ABUSEFLOW_PANEL_ID} .abuseflow-select,
     #${ABUSEFLOW_PANEL_ID} .abuseflow-textarea {
       width: 100%;
-      border: 1px solid #cbd5e1;
+      border: 1px solid #c3d4ea;
       border-radius: 8px;
       padding: 8px;
       box-sizing: border-box;
       font-size: 12px;
       font-family: "Segoe UI", Arial, sans-serif;
       color: #0f172a;
-      background: #ffffff;
+      background: #fbfdff;
     }
     #${ABUSEFLOW_PANEL_ID} .abuseflow-textarea {
       resize: vertical;
       min-height: 84px;
+    }
+    #${ABUSEFLOW_PANEL_ID} .abuseflow-hint {
+      margin-top: -2px;
+      font-size: 11px;
+      color: #54657b;
+      line-height: 1.35;
     }
     #${ABUSEFLOW_PANEL_ID} .abuseflow-primary-button {
       border: none;
@@ -582,9 +710,13 @@ function injectStyles(): void {
       filter: none;
     }
     #${ABUSEFLOW_PANEL_ID} .abuseflow-status {
-      min-height: 18px;
+      min-height: 24px;
       font-size: 12px;
       color: #475569;
+      background: #f3f7ff;
+      border: 1px solid #d5e4ff;
+      border-radius: 8px;
+      padding: 6px 8px;
     }
     #${ABUSEFLOW_PANEL_ID} .abuseflow-status[data-tone="error"] {
       color: #b42318;
@@ -869,6 +1001,28 @@ chrome.runtime.onMessage.addListener(
       setDebugMode(Boolean(message.enabled));
       sendResponse({ ok: true, snapshot: getPanelSnapshot() });
       return false;
+    }
+
+    if (message.type === "ABUSEFLOW_RERUN_FROM_HISTORY") {
+      const detectedProviderId = detectProviderFromUrl(window.location.href);
+      if (detectedProviderId !== message.providerId) {
+        sendResponse({
+          ok: false,
+          error: "Open the same provider form page to rerun this submission."
+        });
+        return false;
+      }
+      void togglePanel(true)
+        .then(async () => {
+          await refreshClientsInPanel();
+          hydratePanelDraft(message.clientId, message.urlsText);
+          await handlePanelAutofill();
+          sendResponse({ ok: true, snapshot: getPanelSnapshot() });
+        })
+        .catch(() => {
+          sendResponse({ ok: false, error: "Unable to rerun submission." });
+        });
+      return true;
     }
 
     if (message.type !== "ABUSEFLOW_AUTOFILL") {

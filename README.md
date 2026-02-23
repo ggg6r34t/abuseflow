@@ -44,11 +44,14 @@ No auto-submission. No automated form navigation.
 
 - Floating in-page autofill button (bottom-right)
 - Popup control center (status, diagnostics, panel controls)
+- Tiered experience modes (`Core`, `Advanced`, `Enterprise`) to keep default UX minimal
 - Analyst profile and multiple client profiles
 - Template-based description generation
 - Multi-step form detection (provider-agnostic)
 - Step-aware autofill (visible fields only)
 - Provider modular architecture (for example Facebook trademark forms)
+- Guardrails for missing required analyst/client data before autofill
+- Optional case session tracking, run history, and evidence export for CERT workflows
 - CERT-focused UX
 - Manifest V3 compliant
 
@@ -109,6 +112,12 @@ AbuseFlow uses a split workflow for reliability and clarity:
 - Popup control center: provider/status overview, open/focus panel, debug toggle, and last-run summary
 
 This avoids duplicate form UIs across surfaces and keeps in-page execution context where autofill runs.
+
+### Tiered UI Model
+
+- `Core` (default): minimal controls for support status, readiness checks, and panel actions
+- `Advanced`: adds diagnostics, URL intelligence, playbooks, run history, and evidence export
+- `Enterprise`: adds case session metadata to support incident/case-driven workflows
 
 ## Installation (Development)
 

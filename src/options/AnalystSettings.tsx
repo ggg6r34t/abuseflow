@@ -18,6 +18,13 @@ function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+const inputStyle = {
+  padding: "8px",
+  borderRadius: "8px",
+  border: "1px solid #c7d6ea",
+  backgroundColor: "#fbfdff"
+} as const;
+
 export function AnalystSettings(props: AnalystSettingsProps): JSX.Element {
   const { onSaved } = props;
   const [form, setForm] = useState<AnalystProfile>(emptyAnalyst);
@@ -85,8 +92,21 @@ export function AnalystSettings(props: AnalystSettingsProps): JSX.Element {
   }
 
   return (
-    <section style={{ display: "grid", gap: "10px", padding: "14px", border: "1px solid #e3e3e3", borderRadius: "10px" }}>
-      <h2 style={{ margin: 0, fontSize: "16px" }}>Analyst Profile</h2>
+    <section
+      style={{
+        display: "grid",
+        gap: "10px",
+        padding: "14px",
+        border: "1px solid #dbe6f4",
+        borderRadius: "12px",
+        backgroundColor: "#ffffff",
+        boxShadow: "0 3px 12px rgba(15, 42, 87, 0.06)"
+      }}
+    >
+      <h2 style={{ margin: 0, fontSize: "16px", color: "#0e3172" }}>Analyst Profile</h2>
+      <small style={{ color: "#506177" }}>
+        Required fields are used by most providers. Optional fields are filled only when matching fields exist.
+      </small>
 
       <label style={{ display: "grid", gap: "4px", fontSize: "13px" }}>
         <span>Full Name</span>
@@ -95,7 +115,7 @@ export function AnalystSettings(props: AnalystSettingsProps): JSX.Element {
           value={form.fullName}
           onChange={(event) => update("fullName", event.target.value)}
           disabled={isLoading || isSaving}
-          style={{ padding: "8px", borderRadius: "8px", border: "1px solid #c9c9c9" }}
+          style={inputStyle}
         />
       </label>
       <label style={{ display: "grid", gap: "4px", fontSize: "13px" }}>
@@ -105,7 +125,7 @@ export function AnalystSettings(props: AnalystSettingsProps): JSX.Element {
           value={form.email}
           onChange={(event) => update("email", event.target.value)}
           disabled={isLoading || isSaving}
-          style={{ padding: "8px", borderRadius: "8px", border: "1px solid #c9c9c9" }}
+          style={inputStyle}
         />
       </label>
       <label style={{ display: "grid", gap: "4px", fontSize: "13px" }}>
@@ -115,7 +135,7 @@ export function AnalystSettings(props: AnalystSettingsProps): JSX.Element {
           value={form.phone ?? ""}
           onChange={(event) => update("phone", event.target.value)}
           disabled={isLoading || isSaving}
-          style={{ padding: "8px", borderRadius: "8px", border: "1px solid #c9c9c9" }}
+          style={inputStyle}
         />
       </label>
       <label style={{ display: "grid", gap: "4px", fontSize: "13px" }}>
@@ -125,7 +145,7 @@ export function AnalystSettings(props: AnalystSettingsProps): JSX.Element {
           value={form.company ?? ""}
           onChange={(event) => update("company", event.target.value)}
           disabled={isLoading || isSaving}
-          style={{ padding: "8px", borderRadius: "8px", border: "1px solid #c9c9c9" }}
+          style={inputStyle}
         />
       </label>
       <label style={{ display: "grid", gap: "4px", fontSize: "13px" }}>
@@ -135,7 +155,7 @@ export function AnalystSettings(props: AnalystSettingsProps): JSX.Element {
           value={form.companyAddress ?? ""}
           onChange={(event) => update("companyAddress", event.target.value)}
           disabled={isLoading || isSaving}
-          style={{ padding: "8px", borderRadius: "8px", border: "1px solid #c9c9c9" }}
+          style={inputStyle}
         />
       </label>
       <label style={{ display: "grid", gap: "4px", fontSize: "13px" }}>
@@ -145,7 +165,7 @@ export function AnalystSettings(props: AnalystSettingsProps): JSX.Element {
           value={form.signature}
           onChange={(event) => update("signature", event.target.value)}
           disabled={isLoading || isSaving}
-          style={{ padding: "8px", borderRadius: "8px", border: "1px solid #c9c9c9" }}
+          style={inputStyle}
         />
       </label>
 
@@ -171,3 +191,4 @@ export function AnalystSettings(props: AnalystSettingsProps): JSX.Element {
     </section>
   );
 }
+

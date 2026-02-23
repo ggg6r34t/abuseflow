@@ -33,6 +33,13 @@ interface ClientManagerProps {
   onSaved: () => void;
 }
 
+const inputStyle = {
+  padding: "8px",
+  borderRadius: "8px",
+  border: "1px solid #c7d6ea",
+  backgroundColor: "#fbfdff"
+} as const;
+
 export function ClientManager(props: ClientManagerProps): JSX.Element {
   const { onSaved } = props;
   const [clients, setClients] = useState<ClientProfile[]>([]);
@@ -165,15 +172,28 @@ export function ClientManager(props: ClientManagerProps): JSX.Element {
   }
 
   return (
-    <section style={{ display: "grid", gap: "10px", padding: "14px", border: "1px solid #e3e3e3", borderRadius: "10px" }}>
-      <h2 style={{ margin: 0, fontSize: "16px" }}>Client Profiles</h2>
+    <section
+      style={{
+        display: "grid",
+        gap: "10px",
+        padding: "14px",
+        border: "1px solid #dbe6f4",
+        borderRadius: "12px",
+        backgroundColor: "#ffffff",
+        boxShadow: "0 3px 12px rgba(15, 42, 87, 0.06)"
+      }}
+    >
+      <h2 style={{ margin: 0, fontSize: "16px", color: "#0e3172" }}>Client Profiles</h2>
+      <small style={{ color: "#506177" }}>
+        Save reusable trademark context per client to speed up structured reporting.
+      </small>
 
       <div style={{ display: "flex", gap: "8px" }}>
         <select
           value={selectedId}
           onChange={(event) => handleSelect(event.target.value)}
           disabled={isLoading || isSaving || isDeleting}
-          style={{ flex: 1, padding: "8px", borderRadius: "8px", border: "1px solid #c9c9c9" }}
+          style={{ ...inputStyle, flex: 1 }}
         >
           <option value="">Select existing client</option>
           {clients.map((client) => (
@@ -186,53 +206,62 @@ export function ClientManager(props: ClientManagerProps): JSX.Element {
           type="button"
           onClick={handleCreate}
           disabled={isLoading || isSaving || isDeleting}
-          style={{ border: "1px solid #c9c9c9", borderRadius: "8px", backgroundColor: "#f8f8f8", padding: "8px 10px", cursor: "pointer" }}
+          style={{
+            border: "1px solid #c7d6ea",
+            borderRadius: "8px",
+            backgroundColor: "#f7faff",
+            padding: "8px 10px",
+            cursor: "pointer"
+          }}
         >
           New
         </button>
       </div>
 
-      <input
-        placeholder="Client name"
-        value={editing.clientName}
-        onChange={(event) => update("clientName", event.target.value)}
-        disabled={isLoading || isSaving || isDeleting}
-        style={{ padding: "8px", borderRadius: "8px", border: "1px solid #c9c9c9" }}
-      />
-      <input
-        placeholder="Trademark name"
-        value={editing.trademarkName}
-        onChange={(event) => update("trademarkName", event.target.value)}
-        disabled={isLoading || isSaving || isDeleting}
-        style={{ padding: "8px", borderRadius: "8px", border: "1px solid #c9c9c9" }}
-      />
-      <input
-        placeholder="Registration number"
-        value={editing.registrationNumber}
-        onChange={(event) => update("registrationNumber", event.target.value)}
-        disabled={isLoading || isSaving || isDeleting}
-        style={{ padding: "8px", borderRadius: "8px", border: "1px solid #c9c9c9" }}
-      />
-      <input
-        placeholder="Jurisdiction"
-        value={editing.jurisdiction}
-        onChange={(event) => update("jurisdiction", event.target.value)}
-        disabled={isLoading || isSaving || isDeleting}
-        style={{ padding: "8px", borderRadius: "8px", border: "1px solid #c9c9c9" }}
-      />
+      <div style={{ display: "grid", gap: "8px", gridTemplateColumns: "1fr 1fr" }}>
+        <input
+          placeholder="Client name"
+          value={editing.clientName}
+          onChange={(event) => update("clientName", event.target.value)}
+          disabled={isLoading || isSaving || isDeleting}
+          style={inputStyle}
+        />
+        <input
+          placeholder="Trademark name"
+          value={editing.trademarkName}
+          onChange={(event) => update("trademarkName", event.target.value)}
+          disabled={isLoading || isSaving || isDeleting}
+          style={inputStyle}
+        />
+        <input
+          placeholder="Registration number"
+          value={editing.registrationNumber}
+          onChange={(event) => update("registrationNumber", event.target.value)}
+          disabled={isLoading || isSaving || isDeleting}
+          style={inputStyle}
+        />
+        <input
+          placeholder="Jurisdiction"
+          value={editing.jurisdiction}
+          onChange={(event) => update("jurisdiction", event.target.value)}
+          disabled={isLoading || isSaving || isDeleting}
+          style={inputStyle}
+        />
+      </div>
+
       <input
         placeholder="Trademark URL (optional)"
         value={editing.trademarkUrl ?? ""}
         onChange={(event) => update("trademarkUrl", event.target.value)}
         disabled={isLoading || isSaving || isDeleting}
-        style={{ padding: "8px", borderRadius: "8px", border: "1px solid #c9c9c9" }}
+        style={inputStyle}
       />
       <input
         placeholder="Client X handle (optional, e.g. @brand)"
         value={editing.xHandle ?? ""}
         onChange={(event) => update("xHandle", event.target.value)}
         disabled={isLoading || isSaving || isDeleting}
-        style={{ padding: "8px", borderRadius: "8px", border: "1px solid #c9c9c9" }}
+        style={inputStyle}
       />
       <textarea
         placeholder="Default description template"
@@ -240,7 +269,7 @@ export function ClientManager(props: ClientManagerProps): JSX.Element {
         onChange={(event) => update("defaultDescriptionTemplate", event.target.value)}
         disabled={isLoading || isSaving || isDeleting}
         rows={6}
-        style={{ padding: "8px", borderRadius: "8px", border: "1px solid #c9c9c9", resize: "vertical" }}
+        style={{ ...inputStyle, resize: "vertical" }}
       />
 
       <div style={{ display: "flex", gap: "8px" }}>
@@ -264,9 +293,9 @@ export function ClientManager(props: ClientManagerProps): JSX.Element {
           onClick={() => void handleDelete()}
           disabled={!selectedClient || isLoading || isSaving || isDeleting}
           style={{
-            border: "1px solid #c9c9c9",
+            border: "1px solid #c7d6ea",
             borderRadius: "8px",
-            backgroundColor: "#f8f8f8",
+            backgroundColor: "#f7faff",
             padding: "8px 14px",
             cursor: !selectedClient || isLoading || isSaving || isDeleting ? "not-allowed" : "pointer"
           }}
