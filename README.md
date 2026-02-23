@@ -25,7 +25,7 @@ AbuseFlow reduces manual effort by safely autofilling only visible fields on sup
 1. Analyst manually opens an abuse or report form.
 2. A floating AbuseFlow button appears on supported pages.
 3. Analyst selects a client profile and pastes URLs.
-4. Analyst clicks `Autofill Current Step`.
+4. Analyst clicks `Autofill`.
 5. The extension fills only visible, empty fields.
 6. Analyst reviews, solves CAPTCHA, and submits manually.
 
@@ -78,17 +78,17 @@ Each platform form is handled via isolated provider modules:
 
 ### Supported Providers
 
-| Provider | Module | Status |
-|---|---|---|
-| Facebook | `src/providers/facebook_abuse_form.ts` | Supported |
-| Instagram | `src/providers/instagram_abuse_form.ts` | Supported |
-| TikTok | `src/providers/tiktok_abuse_form.ts` | Supported |
-| Google | `src/providers/google_abuse_form.ts` | Supported |
-| Cloudflare | `src/providers/cloudflare_abuse_form.ts` | Supported |
-| Dynadot | `src/providers/dynadot_abuse_form.ts` | Supported |
-| NameSilo | `src/providers/namesilo_abuse_form.ts` | Supported |
-| Hostinger | `src/providers/hostinger_abuse_form.ts` | Supported |
-| Generic / Fallback (`x`) | `src/providers/x_abuse_form.ts` | Supported |
+| Provider                 | Module                                   | Status    |
+| ------------------------ | ---------------------------------------- | --------- |
+| Facebook                 | `src/providers/facebook_abuse_form.ts`   | Supported |
+| Instagram                | `src/providers/instagram_abuse_form.ts`  | Supported |
+| TikTok                   | `src/providers/tiktok_abuse_form.ts`     | Supported |
+| Google                   | `src/providers/google_abuse_form.ts`     | Supported |
+| Cloudflare               | `src/providers/cloudflare_abuse_form.ts` | Supported |
+| Dynadot                  | `src/providers/dynadot_abuse_form.ts`    | Supported |
+| NameSilo                 | `src/providers/namesilo_abuse_form.ts`   | Supported |
+| Hostinger                | `src/providers/hostinger_abuse_form.ts`  | Supported |
+| Generic / Fallback (`x`) | `src/providers/x_abuse_form.ts`          | Supported |
 
 ## Multi-Step Form Support
 
@@ -108,7 +108,7 @@ It adapts by:
 
 AbuseFlow uses a split workflow for reliability and clarity:
 
-- Floating panel (primary): client selection, URL input, and `Autofill Current Step`
+- Floating panel (primary): client selection, URL input, and `Autofill`
 - Popup control center: provider/status overview, open/focus panel, debug toggle, and last-run summary
 
 This avoids duplicate form UIs across surfaces and keeps in-page execution context where autofill runs.

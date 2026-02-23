@@ -19,10 +19,10 @@ export function AutofillButton(props: AutofillButtonProps): JSX.Element {
         color: "#ffffff",
         padding: "10px 12px",
         fontWeight: 600,
-        cursor: disabled ? "not-allowed" : "pointer"
+        cursor: disabled ? "not-allowed" : "pointer",
       }}
     >
-      Autofill Current Step
+      Autofill
     </button>
   );
 }

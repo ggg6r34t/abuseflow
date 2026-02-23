@@ -1,7 +1,15 @@
-import { getProviderById, type AutofillPayload, type ProviderId } from "./providers";
+import {
+  getProviderById,
+  type AutofillPayload,
+  type ProviderId,
+} from "./providers";
 import { consumeFacebookAdditionalLinksAutoExpanded } from "./providers/facebook_abuse_form";
 import { appendRunRecord, getFeatureFlags } from "./storage/appStateStore";
-import { getAnalystProfile, listClientProfiles, type ClientProfile } from "./storage/profileStore";
+import {
+  getAnalystProfile,
+  listClientProfiles,
+  type ClientProfile,
+} from "./storage/profileStore";
 import { buildAutofillPayload } from "./utils/autofillPayload";
 import { detectProviderFromUrl } from "./utils/urlDetector";
 
@@ -88,7 +96,9 @@ const ABUSEFLOW_URL_INPUT_ID = "abuseflow-url-input";
 const ABUSEFLOW_AUTOFILL_BUTTON_ID = "abuseflow-autofill-button";
 const ABUSEFLOW_STATUS_ID = "abuseflow-status";
 const ABUSEFLOW_SETTINGS_BUTTON_ID = "abuseflow-open-settings";
-const ABUSEFLOW_BUTTON_ICON_URL = chrome.runtime.getURL("public/icons/button_icon48.png");
+const ABUSEFLOW_BUTTON_ICON_URL = chrome.runtime.getURL(
+  "public/icons/button_icon48.png",
+);
 const CLIENT_PROFILES_KEY = "abuseflow_client_profiles";
 const BASE_BUTTON_RIGHT = 20;
 const BASE_BUTTON_BOTTOM = 20;
@@ -109,7 +119,10 @@ let floatingPositionListenersAttached = false;
 let historyListenersAttached = false;
 let lastAutofillReport: PanelSnapshot["lastRun"] = null;
 
-function getElementById<T extends HTMLElement>(id: string, ctor: { new (): T }): T | null {
+function getElementById<T extends HTMLElement>(
+  id: string,
+  ctor: { new (): T },
+): T | null {
   const element = document.getElementById(id);
   return element instanceof ctor ? element : null;
 }
@@ -117,7 +130,7 @@ function getElementById<T extends HTMLElement>(id: string, ctor: { new (): T }):
 async function openSettingsPage(): Promise<void> {
   try {
     const response = (await chrome.runtime.sendMessage({
-      type: "ABUSEFLOW_OPEN_OPTIONS"
+      type: "ABUSEFLOW_OPEN_OPTIONS",
     })) as OpenOptionsResponse | undefined;
     if (response?.ok) {
       return;
@@ -203,12 +216,13 @@ function createPanel(): HTMLDivElement {
 
   const urlHint = document.createElement("div");
   urlHint.className = "abuseflow-hint";
-  urlHint.textContent = "Tip: paste one URL per line, then run autofill for the current step.";
+  urlHint.textContent =
+    "Tip: paste one URL per line, then run autofill for the current step.";
 
   const autofillButton = document.createElement("button");
   autofillButton.id = ABUSEFLOW_AUTOFILL_BUTTON_ID;
   autofillButton.type = "button";
-  autofillButton.textContent = "Autofill Current Step";
+  autofillButton.textContent = "Autofill";
   autofillButton.className = "abuseflow-primary-button";
   autofillButton.disabled = true;
 
@@ -239,7 +253,9 @@ function attachPanelHandlers(panel: HTMLDivElement): void {
     });
   }
 
-  const autofillButton = panel.querySelector(`#${ABUSEFLOW_AUTOFILL_BUTTON_ID}`);
+  const autofillButton = panel.querySelector(
+    `#${ABUSEFLOW_AUTOFILL_BUTTON_ID}`,
+  );
   if (autofillButton instanceof HTMLButtonElement) {
     autofillButton.addEventListener("click", () => {
       void handlePanelAutofill();
@@ -249,27 +265,39 @@ function attachPanelHandlers(panel: HTMLDivElement): void {
 
 function setPanelBusyState(isBusy: boolean): void {
   isPanelBusy = isBusy;
-  const clientSelect = getElementById(ABUSEFLOW_CLIENT_SELECT_ID, HTMLSelectElement);
-  const autofillButton = getElementById(ABUSEFLOW_AUTOFILL_BUTTON_ID, HTMLButtonElement);
+  const clientSelect = getElementById(
+    ABUSEFLOW_CLIENT_SELECT_ID,
+    HTMLSelectElement,
+  );
+  const autofillButton = getElementById(
+    ABUSEFLOW_AUTOFILL_BUTTON_ID,
+    HTMLButtonElement,
+  );
 
   if (clientSelect) {
     clientSelect.disabled = isBusy || clientSelect.options.length <= 1;
   }
   if (autofillButton) {
     autofillButton.disabled = isBusy || selectedClientId.length === 0;
-    autofillButton.textContent = isBusy ? "Autofilling..." : "Autofill Current Step";
+    autofillButton.textContent = isBusy ? "Autofilling..." : "Autofill";
   }
 }
 
 function updateAutofillButtonState(): void {
-  const autofillButton = getElementById(ABUSEFLOW_AUTOFILL_BUTTON_ID, HTMLButtonElement);
+  const autofillButton = getElementById(
+    ABUSEFLOW_AUTOFILL_BUTTON_ID,
+    HTMLButtonElement,
+  );
   if (!autofillButton) {
     return;
   }
   autofillButton.disabled = isPanelBusy || selectedClientId.length === 0;
 }
 
-function setPanelStatus(message: string, tone: "info" | "error" | "success" = "info"): void {
+function setPanelStatus(
+  message: string,
+  tone: "info" | "error" | "success" = "info",
+): void {
   const status = getElementById(ABUSEFLOW_STATUS_ID, HTMLDivElement);
   if (!status) {
     return;
@@ -310,13 +338,17 @@ function getPanelSnapshot(): PanelSnapshot {
     statusMessage: status?.textContent ?? "",
     statusTone,
     selectedClientId,
-    draftUrlsText: getElementById(ABUSEFLOW_URL_INPUT_ID, HTMLTextAreaElement)?.value ?? "",
+    draftUrlsText:
+      getElementById(ABUSEFLOW_URL_INPUT_ID, HTMLTextAreaElement)?.value ?? "",
     debugMode: isDebugMode(),
-    lastRun: lastAutofillReport
+    lastRun: lastAutofillReport,
   };
 }
 
-function runAutofillForProvider(providerId: ProviderId, payload: AutofillPayload): { filledCount: number; notes: string[] } {
+function runAutofillForProvider(
+  providerId: ProviderId,
+  payload: AutofillPayload,
+): { filledCount: number; notes: string[] } {
   const provider = getProviderById(providerId);
   if (!provider) {
     throw new Error("Provider unavailable.");
@@ -324,7 +356,10 @@ function runAutofillForProvider(providerId: ProviderId, payload: AutofillPayload
 
   const filledCount = provider.autofill(payload);
   const notes: string[] = [];
-  if (providerId === "facebook_abuse_form" && consumeFacebookAdditionalLinksAutoExpanded()) {
+  if (
+    providerId === "facebook_abuse_form" &&
+    consumeFacebookAdditionalLinksAutoExpanded()
+  ) {
     notes.push("Additional link fields were auto-expanded.");
   }
   if (isDebugMode()) {
@@ -334,7 +369,10 @@ function runAutofillForProvider(providerId: ProviderId, payload: AutofillPayload
   return { filledCount, notes };
 }
 
-function getMissingRequiredInputs(payload: AutofillPayload, providerId: ProviderId): string[] {
+function getMissingRequiredInputs(
+  payload: AutofillPayload,
+  providerId: ProviderId,
+): string[] {
   const missing: string[] = [];
   if (!payload.analyst.fullName.trim()) {
     missing.push("Analyst full name");
@@ -374,7 +412,10 @@ function getMissingRequiredInputs(payload: AutofillPayload, providerId: Provider
 }
 
 function populateClientOptions(clients: ClientProfile[]): void {
-  const clientSelect = getElementById(ABUSEFLOW_CLIENT_SELECT_ID, HTMLSelectElement);
+  const clientSelect = getElementById(
+    ABUSEFLOW_CLIENT_SELECT_ID,
+    HTMLSelectElement,
+  );
   if (!clientSelect) {
     return;
   }
@@ -384,7 +425,10 @@ function populateClientOptions(clients: ClientProfile[]): void {
 
   const placeholder = document.createElement("option");
   placeholder.value = "";
-  placeholder.textContent = clients.length > 0 ? "Select client profile" : "No client profiles configured";
+  placeholder.textContent =
+    clients.length > 0
+      ? "Select client profile"
+      : "No client profiles configured";
   clientSelect.appendChild(placeholder);
 
   for (const client of clients) {
@@ -394,7 +438,8 @@ function populateClientOptions(clients: ClientProfile[]): void {
     clientSelect.appendChild(option);
   }
 
-  const hasPreviousSelection = previousId.length > 0 && clients.some((client) => client.id === previousId);
+  const hasPreviousSelection =
+    previousId.length > 0 && clients.some((client) => client.id === previousId);
   selectedClientId = hasPreviousSelection ? previousId : "";
   clientSelect.value = selectedClientId;
   clientSelect.disabled = isPanelBusy || clients.length === 0;
@@ -402,9 +447,18 @@ function populateClientOptions(clients: ClientProfile[]): void {
 }
 
 function hydratePanelDraft(clientId: string, urlsText: string): void {
-  const clientSelect = getElementById(ABUSEFLOW_CLIENT_SELECT_ID, HTMLSelectElement);
-  const urlTextarea = getElementById(ABUSEFLOW_URL_INPUT_ID, HTMLTextAreaElement);
-  if (clientSelect && Array.from(clientSelect.options).some((option) => option.value === clientId)) {
+  const clientSelect = getElementById(
+    ABUSEFLOW_CLIENT_SELECT_ID,
+    HTMLSelectElement,
+  );
+  const urlTextarea = getElementById(
+    ABUSEFLOW_URL_INPUT_ID,
+    HTMLTextAreaElement,
+  );
+  if (
+    clientSelect &&
+    Array.from(clientSelect.options).some((option) => option.value === clientId)
+  ) {
     clientSelect.value = clientId;
     selectedClientId = clientId;
   }
@@ -458,7 +512,10 @@ async function handlePanelAutofill(): Promise<void> {
   setPanelStatus("");
   const startedAt = Date.now();
   try {
-    const [analyst, clients] = await Promise.all([getAnalystProfile(), listClientProfiles()]);
+    const [analyst, clients] = await Promise.all([
+      getAnalystProfile(),
+      listClientProfiles(),
+    ]);
     if (!analyst) {
       setPanelStatus("Configure Analyst Profile in Settings.", "error");
       return;
@@ -471,7 +528,10 @@ async function handlePanelAutofill(): Promise<void> {
       return;
     }
 
-    const urlTextarea = getElementById(ABUSEFLOW_URL_INPUT_ID, HTMLTextAreaElement);
+    const urlTextarea = getElementById(
+      ABUSEFLOW_URL_INPUT_ID,
+      HTMLTextAreaElement,
+    );
     const urlsText = urlTextarea?.value ?? "";
     const payload = buildAutofillPayload(analyst, client, urlsText);
     const flags = await getFeatureFlags();
@@ -485,7 +545,7 @@ async function handlePanelAutofill(): Promise<void> {
         notes: [],
         durationMs: Date.now() - startedAt,
         timestampMs: Date.now(),
-        error: errorMessage
+        error: errorMessage,
       };
       await appendRunRecord({
         providerId,
@@ -497,7 +557,7 @@ async function handlePanelAutofill(): Promise<void> {
         notes: [],
         durationMs: Date.now() - startedAt,
         timestampMs: Date.now(),
-        error: errorMessage
+        error: errorMessage,
       });
       setPanelStatus(errorMessage, "error");
       return;
@@ -513,7 +573,7 @@ async function handlePanelAutofill(): Promise<void> {
       filledCount,
       notes,
       durationMs: Date.now() - startedAt,
-      timestampMs: Date.now()
+      timestampMs: Date.now(),
     };
     await appendRunRecord({
       providerId,
@@ -524,12 +584,18 @@ async function handlePanelAutofill(): Promise<void> {
       filledCount,
       notes,
       durationMs: Date.now() - startedAt,
-      timestampMs: Date.now()
+      timestampMs: Date.now(),
     });
     const notesSuffix = notes.length > 0 ? ` ${notes.join(" ")}` : "";
-    setPanelStatus(`Autofill completed. ${filledCount} field(s) updated.${notesSuffix}`, "success");
+    setPanelStatus(
+      `Autofill completed. ${filledCount} field(s) updated.${notesSuffix}`,
+      "success",
+    );
   } catch (error) {
-    const message = error instanceof Error && error.message ? error.message : "Unable to autofill this form.";
+    const message =
+      error instanceof Error && error.message
+        ? error.message
+        : "Unable to autofill this form.";
     lastAutofillReport = {
       ok: false,
       providerId,
@@ -537,19 +603,21 @@ async function handlePanelAutofill(): Promise<void> {
       notes: [],
       durationMs: Date.now() - startedAt,
       timestampMs: Date.now(),
-      error: message
+      error: message,
     };
     await appendRunRecord({
       providerId,
       pageUrl: window.location.href,
       clientId: selectedClientId,
-      urlsText: getElementById(ABUSEFLOW_URL_INPUT_ID, HTMLTextAreaElement)?.value ?? "",
+      urlsText:
+        getElementById(ABUSEFLOW_URL_INPUT_ID, HTMLTextAreaElement)?.value ??
+        "",
       ok: false,
       filledCount: 0,
       notes: [],
       durationMs: Date.now() - startedAt,
       timestampMs: Date.now(),
-      error: message
+      error: message,
     });
     setPanelStatus(message, "error");
   } finally {
@@ -731,20 +799,34 @@ function injectStyles(): void {
 function applyFloatingPosition(right: number, bottom: number): void {
   const rootStyle = document.documentElement.style;
   rootStyle.setProperty("--abuseflow-button-right", `${Math.max(8, right)}px`);
-  rootStyle.setProperty("--abuseflow-button-bottom", `${Math.max(8, bottom)}px`);
+  rootStyle.setProperty(
+    "--abuseflow-button-bottom",
+    `${Math.max(8, bottom)}px`,
+  );
 }
 
 function isBlockingElement(element: Element): boolean {
-  if (element.id === ABUSEFLOW_BUTTON_ID || element.id === ABUSEFLOW_PANEL_ID || element.id === ABUSEFLOW_STYLE_ID) {
+  if (
+    element.id === ABUSEFLOW_BUTTON_ID ||
+    element.id === ABUSEFLOW_PANEL_ID ||
+    element.id === ABUSEFLOW_STYLE_ID
+  ) {
     return false;
   }
 
-  if (element.closest(`#${ABUSEFLOW_PANEL_ID}`) || element.closest(`#${ABUSEFLOW_BUTTON_ID}`)) {
+  if (
+    element.closest(`#${ABUSEFLOW_PANEL_ID}`) ||
+    element.closest(`#${ABUSEFLOW_BUTTON_ID}`)
+  ) {
     return false;
   }
 
   const computed = window.getComputedStyle(element);
-  if (computed.pointerEvents === "none" || computed.visibility === "hidden" || computed.display === "none") {
+  if (
+    computed.pointerEvents === "none" ||
+    computed.visibility === "hidden" ||
+    computed.display === "none"
+  ) {
     return false;
   }
 
@@ -760,7 +842,12 @@ function hasCollisionAt(right: number, bottom: number): boolean {
   const centerX = window.innerWidth - right - BUTTON_SIZE_PX / 2;
   const centerY = window.innerHeight - bottom - BUTTON_SIZE_PX / 2;
 
-  if (centerX < 0 || centerY < 0 || centerX > window.innerWidth || centerY > window.innerHeight) {
+  if (
+    centerX < 0 ||
+    centerY < 0 ||
+    centerX > window.innerWidth ||
+    centerY > window.innerHeight
+  ) {
     return false;
   }
 
@@ -769,7 +856,7 @@ function hasCollisionAt(right: number, bottom: number): boolean {
     [centerX - BUTTON_SIZE_PX / 3, centerY - BUTTON_SIZE_PX / 3],
     [centerX + BUTTON_SIZE_PX / 3, centerY - BUTTON_SIZE_PX / 3],
     [centerX - BUTTON_SIZE_PX / 3, centerY + BUTTON_SIZE_PX / 3],
-    [centerX + BUTTON_SIZE_PX / 3, centerY + BUTTON_SIZE_PX / 3]
+    [centerX + BUTTON_SIZE_PX / 3, centerY + BUTTON_SIZE_PX / 3],
   ];
 
   for (const [x, y] of samplePoints) {
@@ -826,7 +913,10 @@ function startFloatingPositionTimer(): void {
     return;
   }
 
-  floatingPositionTimerId = window.setInterval(resolveFloatingPosition, BUTTON_REPOSITION_INTERVAL_MS);
+  floatingPositionTimerId = window.setInterval(
+    resolveFloatingPosition,
+    BUTTON_REPOSITION_INTERVAL_MS,
+  );
 }
 
 function stopFloatingPositionTimer(): void {
@@ -859,7 +949,7 @@ function handleOutsideClick(event: MouseEvent): void {
 
 function handleStorageChange(
   changes: { [key: string]: chrome.storage.StorageChange },
-  areaName: "sync" | "local" | "managed" | "session"
+  areaName: "sync" | "local" | "managed" | "session",
 ): void {
   if (areaName !== "sync" || !changes[CLIENT_PROFILES_KEY]) {
     return;
@@ -957,13 +1047,17 @@ function attachHistoryListeners(): void {
   }
 
   const originalPushState = history.pushState;
-  history.pushState = function pushStatePatched(...args: Parameters<History["pushState"]>) {
+  history.pushState = function pushStatePatched(
+    ...args: Parameters<History["pushState"]>
+  ) {
     originalPushState.apply(this, args);
     notifyUrlChange();
   };
 
   const originalReplaceState = history.replaceState;
-  history.replaceState = function replaceStatePatched(...args: Parameters<History["replaceState"]>) {
+  history.replaceState = function replaceStatePatched(
+    ...args: Parameters<History["replaceState"]>
+  ) {
     originalReplaceState.apply(this, args);
     notifyUrlChange();
   };
@@ -983,7 +1077,9 @@ chrome.runtime.onMessage.addListener(
   (
     message: ContentScriptMessage,
     _sender: chrome.runtime.MessageSender,
-    sendResponse: (response: AutofillResponseMessage | PanelSnapshotResponse) => void
+    sendResponse: (
+      response: AutofillResponseMessage | PanelSnapshotResponse,
+    ) => void,
   ): boolean => {
     if (message.type === "ABUSEFLOW_OPEN_PANEL") {
       void togglePanel(true).then(() => {
@@ -1008,7 +1104,7 @@ chrome.runtime.onMessage.addListener(
       if (detectedProviderId !== message.providerId) {
         sendResponse({
           ok: false,
-          error: "Open the same provider form page to rerun this submission."
+          error: "Open the same provider form page to rerun this submission.",
         });
         return false;
       }
@@ -1037,13 +1133,19 @@ chrome.runtime.onMessage.addListener(
     }
     const detectedProviderId = detectProviderFromUrl(window.location.href);
     if (detectedProviderId !== message.providerId) {
-      sendResponse({ ok: false, error: "This page is not supported by the selected provider." });
+      sendResponse({
+        ok: false,
+        error: "This page is not supported by the selected provider.",
+      });
       return false;
     }
 
     const startedAt = Date.now();
     try {
-      const { filledCount, notes } = runAutofillForProvider(message.providerId, message.payload);
+      const { filledCount, notes } = runAutofillForProvider(
+        message.providerId,
+        message.payload,
+      );
       sendResponse({
         ok: true,
         filledCount,
@@ -1052,11 +1154,12 @@ chrome.runtime.onMessage.addListener(
           providerId: message.providerId,
           pageUrl: window.location.href,
           inputUrlCount: message.payload.urls.length,
-          durationMs: Date.now() - startedAt
-        }
+          durationMs: Date.now() - startedAt,
+        },
       });
     } catch (error) {
-      const messageText = error instanceof Error ? error.message : "Autofill failed.";
+      const messageText =
+        error instanceof Error ? error.message : "Autofill failed.";
       sendResponse({
         ok: false,
         error: messageText,
@@ -1064,10 +1167,10 @@ chrome.runtime.onMessage.addListener(
           providerId: message.providerId,
           pageUrl: window.location.href,
           inputUrlCount: message.payload.urls.length,
-          durationMs: Date.now() - startedAt
-        }
+          durationMs: Date.now() - startedAt,
+        },
       });
     }
     return false;
-  }
+  },
 );
