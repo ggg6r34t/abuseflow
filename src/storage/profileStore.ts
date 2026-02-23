@@ -25,6 +25,14 @@ interface StoredState {
 
 const ANALYST_PROFILE_KEY = "abuseflow_analyst_profile";
 const CLIENT_PROFILES_KEY = "abuseflow_client_profiles";
+const DEFAULT_ANALYST_PROFILE: AnalystProfile = {
+  fullName: "Group-IB Digital Risk Protection Analyst",
+  email: "drp-response@group-ib.com",
+  phone: "+31 20 226 9090",
+  company: "Group-IB",
+  companyAddress: "Prinsengracht 919, 1017KD Amsterdam, Netherlands",
+  signature: "Group-IB Digital Risk Protection Analyst"
+};
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -149,7 +157,16 @@ function setInStorage<T>(key: string, value: T): Promise<void> {
 
 export async function getAnalystProfile(): Promise<AnalystProfile | null> {
   const profile = await getFromStorage<StoredState["analystProfile"]>(ANALYST_PROFILE_KEY);
-  return normalizeAnalystProfile(profile);
+  const normalized = normalizeAnalystProfile(profile);
+  if (normalized) {
+    return normalized;
+  }
+  const seeded = normalizeAnalystProfile(DEFAULT_ANALYST_PROFILE);
+  if (!seeded) {
+    return null;
+  }
+  await setInStorage(ANALYST_PROFILE_KEY, seeded);
+  return seeded;
 }
 
 export async function saveAnalystProfile(profile: AnalystProfile): Promise<void> {

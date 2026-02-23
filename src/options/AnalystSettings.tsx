@@ -2,12 +2,12 @@ import { useEffect, useState } from "react";
 import { getAnalystProfile, saveAnalystProfile, type AnalystProfile } from "../storage/profileStore";
 
 const emptyAnalyst: AnalystProfile = {
-  fullName: "",
-  email: "",
-  phone: "",
-  company: "",
-  companyAddress: "",
-  signature: ""
+  fullName: "Group-IB Digital Risk Protection Analyst",
+  email: "drp-response@group-ib.com",
+  phone: "+31 20 226 9090",
+  company: "Group-IB",
+  companyAddress: "Prinsengracht 919, 1017KD Amsterdam, Netherlands",
+  signature: "Group-IB Digital Risk Protection Analyst"
 };
 
 interface AnalystSettingsProps {
@@ -191,4 +191,3 @@ export function AnalystSettings(props: AnalystSettingsProps): JSX.Element {
     </section>
   );
 }
-
