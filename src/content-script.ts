@@ -1,8 +1,8 @@
 import { getProviderById, type AutofillPayload, type ProviderId } from "./providers";
 import { consumeFacebookAdditionalLinksAutoExpanded } from "./providers/facebook_abuse_form";
 import { getAnalystProfile, listClientProfiles, type ClientProfile } from "./storage/profileStore";
-import { renderTemplate } from "./utils/templateEngine";
-import { detectProviderFromUrl, parseUrls } from "./utils/urlDetector";
+import { buildAutofillPayload } from "./utils/autofillPayload";
+import { detectProviderFromUrl } from "./utils/urlDetector";
 
 interface AutofillRequestMessage {
   type: "ABUSEFLOW_AUTOFILL";
@@ -13,6 +13,13 @@ interface AutofillRequestMessage {
 interface AutofillResponseMessage {
   ok: boolean;
   filledCount?: number;
+  notes?: string[];
+  diagnostics?: {
+    providerId: ProviderId;
+    pageUrl: string;
+    inputUrlCount: number;
+    durationMs: number;
+  };
   error?: string;
 }
 
@@ -36,7 +43,8 @@ const BASE_BUTTON_BOTTOM = 20;
 const BUTTON_SIZE_PX = 48;
 const BUTTON_STEP_OFFSET_PX = 72;
 const BUTTON_MAX_OFFSET_PX = 360;
-const BUTTON_REPOSITION_INTERVAL_MS = 1500;
+const BUTTON_REPOSITION_INTERVAL_MS = 4000;
+const SYNC_UI_INTERVAL_MS = 5000;
 const MAX_FLOATING_Z_INDEX = 2147483646;
 
 let lastKnownUrl = window.location.href;
@@ -46,6 +54,7 @@ let selectedClientId = "";
 let isPanelBusy = false;
 let floatingPositionTimerId: number | null = null;
 let floatingPositionListenersAttached = false;
+let historyListenersAttached = false;
 
 function getElementById<T extends HTMLElement>(id: string, ctor: { new (): T }): T | null {
   const element = document.getElementById(id);
@@ -211,6 +220,32 @@ function setPanelStatus(message: string, tone: "info" | "error" | "success" = "i
   status.setAttribute("data-tone", tone);
 }
 
+function isDebugMode(): boolean {
+  try {
+    return window.localStorage.getItem("abuseflow_debug_mode") === "1";
+  } catch {
+    return false;
+  }
+}
+
+function runAutofillForProvider(providerId: ProviderId, payload: AutofillPayload): { filledCount: number; notes: string[] } {
+  const provider = getProviderById(providerId);
+  if (!provider) {
+    throw new Error("Provider unavailable.");
+  }
+
+  const filledCount = provider.autofill(payload);
+  const notes: string[] = [];
+  if (providerId === "facebook_abuse_form" && consumeFacebookAdditionalLinksAutoExpanded()) {
+    notes.push("Additional link fields were auto-expanded.");
+  }
+  if (isDebugMode()) {
+    notes.push(`Debug: provider=${providerId}, urls=${payload.urls.length}`);
+  }
+
+  return { filledCount, notes };
+}
+
 function populateClientOptions(clients: ClientProfile[]): void {
   const clientSelect = getElementById(ABUSEFLOW_CLIENT_SELECT_ID, HTMLSelectElement);
   if (!clientSelect) {
@@ -281,6 +316,7 @@ async function handlePanelAutofill(): Promise<void> {
 
   setPanelBusyState(true);
   setPanelStatus("");
+  const startedAt = Date.now();
   try {
     const [analyst, clients] = await Promise.all([getAnalystProfile(), listClientProfiles()]);
     if (!analyst) {
@@ -296,27 +332,17 @@ async function handlePanelAutofill(): Promise<void> {
     }
 
     const urlTextarea = getElementById(ABUSEFLOW_URL_INPUT_ID, HTMLTextAreaElement);
-    const urls = parseUrls(urlTextarea?.value ?? "");
-    const description = renderTemplate(client.defaultDescriptionTemplate, {
-      client_name: client.clientName,
-      trademark_name: client.trademarkName,
-      registration_number: client.registrationNumber,
-      jurisdiction: client.jurisdiction,
-      urls: urls.join("\n")
-    });
+    const payload = buildAutofillPayload(analyst, client, urlTextarea?.value ?? "");
+    const { filledCount, notes } = runAutofillForProvider(providerId, payload);
 
-    const filledCount = provider.autofill({
-      analyst,
-      client,
-      urls,
-      description
-    });
-
-    const facebookExpanded = providerId === "facebook_abuse_form" && consumeFacebookAdditionalLinksAutoExpanded();
-    const expandedNote = facebookExpanded ? " Additional link fields were auto-expanded." : "";
-    setPanelStatus(`Autofill completed. ${filledCount} field(s) updated.${expandedNote}`, "success");
-  } catch {
-    setPanelStatus("Unable to autofill this form.", "error");
+    if (isDebugMode()) {
+      notes.push(`Debug: duration=${Date.now() - startedAt}ms`);
+    }
+    const notesSuffix = notes.length > 0 ? ` ${notes.join(" ")}` : "";
+    setPanelStatus(`Autofill completed. ${filledCount} field(s) updated.${notesSuffix}`, "success");
+  } catch (error) {
+    const message = error instanceof Error && error.message ? error.message : "Unable to autofill this form.";
+    setPanelStatus(message, "error");
   } finally {
     setPanelBusyState(false);
   }
@@ -335,8 +361,13 @@ async function togglePanel(forceOpen?: boolean): Promise<void> {
   button.setAttribute("aria-expanded", String(shouldOpen));
 
   if (shouldOpen) {
+    attachFloatingPositionWatchers();
+    startFloatingPositionTimer();
     resolveFloatingPosition();
     await refreshClientsInPanel();
+  } else {
+    stopFloatingPositionTimer();
+    detachFloatingPositionWatchers();
   }
 }
 
@@ -646,8 +677,6 @@ function injectUI(): void {
     storageListenerAttached = true;
   }
 
-  attachFloatingPositionWatchers();
-  startFloatingPositionTimer();
   resolveFloatingPosition();
 }
 
@@ -697,9 +726,35 @@ function syncUiForCurrentUrl(): void {
   }
 }
 
+function notifyUrlChange(): void {
+  window.dispatchEvent(new Event("abuseflow:urlchange"));
+}
+
+function attachHistoryListeners(): void {
+  if (historyListenersAttached) {
+    return;
+  }
+
+  const originalPushState = history.pushState;
+  history.pushState = function pushStatePatched(...args: Parameters<History["pushState"]>) {
+    originalPushState.apply(this, args);
+    notifyUrlChange();
+  };
+
+  const originalReplaceState = history.replaceState;
+  history.replaceState = function replaceStatePatched(...args: Parameters<History["replaceState"]>) {
+    originalReplaceState.apply(this, args);
+    notifyUrlChange();
+  };
+
+  window.addEventListener("abuseflow:urlchange", syncUiForCurrentUrl);
+  historyListenersAttached = true;
+}
+
 injectUI();
 syncUiForCurrentUrl();
-window.setInterval(syncUiForCurrentUrl, 1000);
+attachHistoryListeners();
+window.setInterval(syncUiForCurrentUrl, SYNC_UI_INTERVAL_MS);
 window.addEventListener("popstate", syncUiForCurrentUrl);
 window.addEventListener("hashchange", syncUiForCurrentUrl);
 
@@ -719,13 +774,39 @@ chrome.runtime.onMessage.addListener(
       sendResponse({ ok: false, error: "Provider not found." });
       return false;
     }
-    if (!provider.isMatch(window.location.href)) {
+    const detectedProviderId = detectProviderFromUrl(window.location.href);
+    if (detectedProviderId !== message.providerId) {
       sendResponse({ ok: false, error: "This page is not supported by the selected provider." });
       return false;
     }
 
-    const filledCount = provider.autofill(message.payload);
-    sendResponse({ ok: true, filledCount });
+    const startedAt = Date.now();
+    try {
+      const { filledCount, notes } = runAutofillForProvider(message.providerId, message.payload);
+      sendResponse({
+        ok: true,
+        filledCount,
+        notes,
+        diagnostics: {
+          providerId: message.providerId,
+          pageUrl: window.location.href,
+          inputUrlCount: message.payload.urls.length,
+          durationMs: Date.now() - startedAt
+        }
+      });
+    } catch (error) {
+      const messageText = error instanceof Error ? error.message : "Autofill failed.";
+      sendResponse({
+        ok: false,
+        error: messageText,
+        diagnostics: {
+          providerId: message.providerId,
+          pageUrl: window.location.href,
+          inputUrlCount: message.payload.urls.length,
+          durationMs: Date.now() - startedAt
+        }
+      });
+    }
     return false;
   }
 );

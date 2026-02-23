@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import type { AutofillPayload, ProviderId } from "../providers";
 import { getAnalystProfile, getClientProfileById, listClientProfiles, type ClientProfile } from "../storage/profileStore";
-import { renderTemplate } from "../utils/templateEngine";
-import { detectProviderFromUrl, parseUrls } from "../utils/urlDetector";
+import { buildAutofillPayload } from "../utils/autofillPayload";
+import { detectProviderFromUrl } from "../utils/urlDetector";
 import { AutofillButton } from "./AutofillButton";
 import { ClientSelector } from "./ClientSelector";
 import { UrlInput } from "./UrlInput";
@@ -16,6 +16,13 @@ interface AutofillMessage {
 interface AutofillResponse {
   ok: boolean;
   filledCount?: number;
+  notes?: string[];
+  diagnostics?: {
+    providerId: ProviderId;
+    pageUrl: string;
+    inputUrlCount: number;
+    durationMs: number;
+  };
   error?: string;
 }
 
@@ -92,34 +99,38 @@ export function Popup(): JSX.Element {
         return;
       }
 
-      const urls = parseUrls(urlsText);
-      const description = renderTemplate(clientProfile.defaultDescriptionTemplate, {
-        client_name: clientProfile.clientName,
-        trademark_name: clientProfile.trademarkName,
-        registration_number: clientProfile.registrationNumber,
-        jurisdiction: clientProfile.jurisdiction,
-        urls: urls.join("\n")
-      });
+      const payload = buildAutofillPayload(analystProfile, clientProfile, urlsText);
 
       const message: AutofillMessage = {
         type: "ABUSEFLOW_AUTOFILL",
         providerId: tabContext.providerId,
-        payload: {
-          analyst: analystProfile,
-          client: clientProfile,
-          urls,
-          description
-        }
+        payload
       };
 
       const response = (await chrome.tabs.sendMessage(tabContext.tabId, message)) as AutofillResponse;
       if (!response?.ok) {
+        if (response?.diagnostics) {
+          setStatus(
+            `${response.error ?? "Autofill failed."} [${response.diagnostics.providerId}, ${
+              response.diagnostics.durationMs
+            }ms]`
+          );
+          return;
+        }
         setStatus(response?.error ?? "Autofill failed.");
         return;
       }
-      setStatus(`Autofill completed. ${response.filledCount ?? 0} field(s) updated.`);
-    } catch {
-      setStatus("Unable to autofill this form.");
+      const notesSuffix =
+        response.notes && response.notes.length > 0 ? ` ${response.notes.join(" ")}` : "";
+      const diagnosticsSuffix = response.diagnostics
+        ? ` [${response.diagnostics.providerId}, ${response.diagnostics.durationMs}ms]`
+        : "";
+      setStatus(
+        `Autofill completed. ${response.filledCount ?? 0} field(s) updated.${notesSuffix}${diagnosticsSuffix}`
+      );
+    } catch (error) {
+      const message = error instanceof Error && error.message ? error.message : "Unable to autofill this form.";
+      setStatus(message);
     } finally {
       setIsAutofilling(false);
     }

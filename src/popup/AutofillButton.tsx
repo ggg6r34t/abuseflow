@@ -22,7 +22,7 @@ export function AutofillButton(props: AutofillButtonProps): JSX.Element {
         cursor: disabled ? "not-allowed" : "pointer"
       }}
     >
-      Autofill Form
+      Autofill Current Step
     </button>
   );
 }

@@ -1,4 +1,5 @@
 import type { ProviderModule } from "./index";
+import { isProviderUrl } from "../config/providerRoutes";
 import {
   findFieldByLabelText,
   findInputByNames,
@@ -60,7 +61,7 @@ function safeFillBySelector(selector: string | null, value: string): boolean {
 export const namesiloAbuseFormProvider: ProviderModule = {
   id: "namesilo_abuse_form",
   isMatch(url: string): boolean {
-    return url.includes("namesilo.com/report_abuse.php");
+    return isProviderUrl("namesilo_abuse_form", url);
   },
   autofill(payload): number {
     let filledCount = 0;

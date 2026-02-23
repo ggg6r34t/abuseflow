@@ -1,4 +1,5 @@
 import type { ProviderModule } from "./index";
+import { isProviderUrl } from "../config/providerRoutes";
 import { isElementVisible, safeFillIfVisible } from "../utils/safeFill";
 
 const abuseTypeInputId = "report-abuse-form-abuseType";
@@ -43,7 +44,7 @@ function safeSelectAbuseType(optionText: string): boolean {
 export const hostingerAbuseFormProvider: ProviderModule = {
   id: "hostinger_abuse_form",
   isMatch(url: string): boolean {
-    return url.includes("hostinger.com/report-abuse");
+    return isProviderUrl("hostinger_abuse_form", url);
   },
   autofill(payload): number {
     let filledCount = 0;

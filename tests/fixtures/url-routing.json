@@ -1,0 +1,46 @@
+[
+  {
+    "url": "https://www.facebook.com/help/contact/123",
+    "providerId": "facebook_abuse_form"
+  },
+  {
+    "url": "https://help.instagram.com/contact/987",
+    "providerId": "instagram_abuse_form"
+  },
+  {
+    "url": "https://www.namesilo.com/report_abuse.php?x=1",
+    "providerId": "namesilo_abuse_form"
+  },
+  {
+    "url": "https://help.x.com/en/forms/ipi/trademark/trademark-owner",
+    "providerId": "x_abuse_form"
+  },
+  {
+    "url": "https://help.x.com/content/help-twitter/en/forms/ipi/trademark/trademark-owner",
+    "providerId": "x_abuse_form"
+  },
+  {
+    "url": "https://abuse.cloudflare.com/trademark",
+    "providerId": "cloudflare_abuse_form"
+  },
+  {
+    "url": "https://ipr.tiktokforbusiness.com/legal/report/Trademark",
+    "providerId": "tiktok_abuse_form"
+  },
+  {
+    "url": "https://www.hostinger.com/report-abuse",
+    "providerId": "hostinger_abuse_form"
+  },
+  {
+    "url": "https://www.dynadot.com/report-abuse",
+    "providerId": "dynadot_abuse_form"
+  },
+  {
+    "url": "https://support.google.com/sites/contact/corporate_impersonation?hl=en",
+    "providerId": "google_abuse_form"
+  },
+  {
+    "url": "https://help.twitter.com/en/forms/ipi/trademark/trademark-owner",
+    "providerId": null
+  }
+]

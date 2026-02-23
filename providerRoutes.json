@@ -1,0 +1,91 @@
+{
+  "providers": [
+    {
+      "id": "facebook_abuse_form",
+      "rules": [
+        {
+          "all": ["facebook.com/help/contact"]
+        }
+      ],
+      "manifestMatches": ["https://*.facebook.com/help/contact*"]
+    },
+    {
+      "id": "instagram_abuse_form",
+      "rules": [
+        {
+          "all": ["help.instagram.com/contact"]
+        }
+      ],
+      "manifestMatches": ["https://help.instagram.com/contact/*"]
+    },
+    {
+      "id": "namesilo_abuse_form",
+      "rules": [
+        {
+          "all": ["namesilo.com/report_abuse.php"]
+        }
+      ],
+      "manifestMatches": ["https://www.namesilo.com/report_abuse.php*"]
+    },
+    {
+      "id": "x_abuse_form",
+      "rules": [
+        {
+          "all": ["help.x.com", "/forms/ipi/trademark/"]
+        },
+        {
+          "all": ["help.x.com", "/content/help-twitter/en/forms/ipi/trademark/"]
+        }
+      ],
+      "manifestMatches": [
+        "https://help.x.com/en/forms/ipi/trademark/*",
+        "https://help.x.com/content/help-twitter/en/forms/ipi/trademark/*"
+      ]
+    },
+    {
+      "id": "cloudflare_abuse_form",
+      "rules": [
+        {
+          "all": ["abuse.cloudflare.com/trademark"]
+        }
+      ],
+      "manifestMatches": ["https://abuse.cloudflare.com/trademark*"]
+    },
+    {
+      "id": "tiktok_abuse_form",
+      "rules": [
+        {
+          "all": ["ipr.tiktokforbusiness.com/legal/report/trademark"]
+        }
+      ],
+      "manifestMatches": ["https://ipr.tiktokforbusiness.com/legal/report/Trademark*"]
+    },
+    {
+      "id": "hostinger_abuse_form",
+      "rules": [
+        {
+          "all": ["hostinger.com/report-abuse"]
+        }
+      ],
+      "manifestMatches": ["https://www.hostinger.com/report-abuse*"]
+    },
+    {
+      "id": "dynadot_abuse_form",
+      "rules": [
+        {
+          "all": ["dynadot.com/report-abuse"]
+        }
+      ],
+      "manifestMatches": ["https://www.dynadot.com/report-abuse*"]
+    },
+    {
+      "id": "google_abuse_form",
+      "rules": [
+        {
+          "all": ["support.google.com/sites/contact/corporate_impersonation"]
+        }
+      ],
+      "manifestMatches": ["https://support.google.com/sites/contact/corporate_impersonation*"]
+    }
+  ]
+}

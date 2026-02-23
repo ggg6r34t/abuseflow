@@ -5,7 +5,9 @@
   "scripts": {
     "build": "node build.mjs",
     "build:watch": "node build.mjs --watch",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:fixtures": "node scripts/run-fixture-tests.mjs",
+    "test": "npm run test:fixtures"
   },
   "dependencies": {
     "react": "^18.3.1",

@@ -1,4 +1,5 @@
 import type { ProviderModule } from "./index";
+import { isProviderUrl } from "../config/providerRoutes";
 import {
   findFieldByLabelText,
   findInputByNames,
@@ -302,7 +303,7 @@ function fillUrlFields(urls: string[]): number {
 export const facebookAbuseFormProvider: ProviderModule = {
   id: "facebook_abuse_form",
   isMatch(url: string): boolean {
-    return url.includes("facebook.com/help/contact");
+    return isProviderUrl("facebook_abuse_form", url);
   },
   autofill(payload): number {
     didAutoExpandAdditionalLinks = false;

@@ -1,10 +1,11 @@
 import type { ProviderModule } from "./index";
 import { facebookAbuseFormProvider } from "./facebook_abuse_form";
+import { isProviderUrl } from "../config/providerRoutes";
 
 export const instagramAbuseFormProvider: ProviderModule = {
   id: "instagram_abuse_form",
   isMatch(url: string): boolean {
-    return url.includes("help.instagram.com/contact");
+    return isProviderUrl("instagram_abuse_form", url);
   },
   autofill(payload): number {
     return facebookAbuseFormProvider.autofill(payload);

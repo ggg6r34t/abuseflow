@@ -1,4 +1,5 @@
 import type { ProviderModule } from "./index";
+import { isProviderUrl } from "../config/providerRoutes";
 import { safeFillIfVisible } from "../utils/safeFill";
 
 const fullNameCandidates = ["name"];
@@ -51,7 +52,7 @@ function safeFillTextareaByNames(names: readonly string[], value: string): boole
 export const cloudflareAbuseFormProvider: ProviderModule = {
   id: "cloudflare_abuse_form",
   isMatch(url: string): boolean {
-    return url.includes("abuse.cloudflare.com/trademark");
+    return isProviderUrl("cloudflare_abuse_form", url);
   },
   autofill(payload): number {
     let filledCount = 0;

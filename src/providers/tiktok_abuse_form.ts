@@ -1,4 +1,5 @@
 import type { ProviderModule } from "./index";
+import { isProviderUrl } from "../config/providerRoutes";
 import { isElementVisible, safeFillIfVisible } from "../utils/safeFill";
 
 function findInputInSection(sectionId: string): HTMLInputElement | null {
@@ -63,7 +64,7 @@ function safeFillIfEnabled(element: HTMLInputElement | HTMLTextAreaElement | nul
 export const tiktokAbuseFormProvider: ProviderModule = {
   id: "tiktok_abuse_form",
   isMatch(url: string): boolean {
-    return url.includes("ipr.tiktokforbusiness.com/legal/report/Trademark");
+    return isProviderUrl("tiktok_abuse_form", url);
   },
   autofill(payload): number {
     let filledCount = 0;

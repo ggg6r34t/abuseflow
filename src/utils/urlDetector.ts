@@ -1,56 +1,24 @@
 import type { ProviderId } from "../providers";
-
-function isXTrademarkFormUrl(url: string): boolean {
-  const normalized = url.toLowerCase();
-  const isXHelpHost =
-    normalized.includes("help.x.com") ||
-    normalized.includes("help.twitter.com");
-  if (!isXHelpHost) {
-    return false;
-  }
-  return (
-    normalized.includes("/forms/ipi/trademark/") ||
-    normalized.includes("/content/help-twitter/en/forms/ipi/trademark/") ||
-    normalized.includes("help.x.com/en/forms/ipi/trademark/auth-to-rep")
-  );
-}
+import { detectProviderIdFromUrl } from "../config/providerRoutes";
 
 export function detectProviderFromUrl(url: string): ProviderId | null {
-  if (url.includes("facebook.com/help/contact")) {
-    return "facebook_abuse_form";
-  }
-  if (url.includes("help.instagram.com/contact")) {
-    return "instagram_abuse_form";
-  }
-  if (url.includes("namesilo.com/report_abuse.php")) {
-    return "namesilo_abuse_form";
-  }
-  if (isXTrademarkFormUrl(url)) {
-    return "x_abuse_form";
-  }
-  if (url.includes("abuse.cloudflare.com/trademark")) {
-    return "cloudflare_abuse_form";
-  }
-  if (url.includes("ipr.tiktokforbusiness.com/legal/report/Trademark")) {
-    return "tiktok_abuse_form";
-  }
-  if (url.includes("hostinger.com/report-abuse")) {
-    return "hostinger_abuse_form";
-  }
-  if (url.includes("dynadot.com/report-abuse")) {
-    return "dynadot_abuse_form";
-  }
-  if (
-    url.includes("support.google.com/sites/contact/corporate_impersonation")
-  ) {
-    return "google_abuse_form";
-  }
-  return null;
+  const providerId = detectProviderIdFromUrl(url);
+  return (providerId as ProviderId | null) ?? null;
 }
 
 export function parseUrls(urlsText: string): string[] {
-  return urlsText
+  const normalized = urlsText
     .split("\n")
     .map((line) => line.trim())
     .filter((line) => line.length > 0);
+  const unique: string[] = [];
+  const seen = new Set<string>();
+  for (const url of normalized) {
+    if (seen.has(url)) {
+      continue;
+    }
+    seen.add(url);
+    unique.push(url);
+  }
+  return unique;
 }

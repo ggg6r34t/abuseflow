@@ -1,0 +1,12 @@
+[
+  {
+    "name": "deduplicates and trims",
+    "input": " https://a.test/x \nhttps://a.test/x\nhttps://b.test/y\n\n",
+    "expected": ["https://a.test/x", "https://b.test/y"]
+  },
+  {
+    "name": "preserves first-seen order",
+    "input": "https://b.test/y\nhttps://a.test/x\nhttps://b.test/y",
+    "expected": ["https://b.test/y", "https://a.test/x"]
+  }
+]

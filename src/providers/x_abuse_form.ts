@@ -1,4 +1,5 @@
 import type { ProviderModule } from "./index";
+import { isProviderUrl } from "../config/providerRoutes";
 import { findInputByNames, findSelectByNames, findTextareaByNames } from "../utils/domHelpers";
 import { isElementVisible, safeFillIfVisible, safeSelectOption } from "../utils/safeFill";
 
@@ -131,22 +132,10 @@ function pickWebsite(clientWebsite: string | undefined, urls: string[]): string 
   return normalizeProfileUrl(firstUrl);
 }
 
-function isXTrademarkFormUrl(url: string): boolean {
-  const normalized = url.toLowerCase();
-  const isXHelpHost = normalized.includes("help.x.com") || normalized.includes("help.twitter.com");
-  if (!isXHelpHost) {
-    return false;
-  }
-  return (
-    normalized.includes("/forms/ipi/trademark/") ||
-    normalized.includes("/content/help-twitter/en/forms/ipi/trademark/")
-  );
-}
-
 export const xAbuseFormProvider: ProviderModule = {
   id: "x_abuse_form",
   isMatch(url: string): boolean {
-    return isXTrademarkFormUrl(url);
+    return isProviderUrl("x_abuse_form", url);
   },
   autofill(payload): number {
     let filledCount = 0;

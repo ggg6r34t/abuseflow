@@ -7,7 +7,7 @@ import {
 } from "../storage/profileStore";
 
 const defaultTemplate =
-  "Group-IB acts as the authorized representative of {{client_name}}, the rights holder of {{trademark_name}} (Registration: {{registration_number}}, Jurisdiction: {{jurisdiction}}).\n\nThe reported account(s) and/or content are impersonating {{client_name}} through unauthorized use of the brand’s name, logo, and protected identity elements.\n\nInfringing URLs:\n{{urls}}\n\nThis activity constitutes trademark infringement and brand impersonation, creates a false impression of affiliation, and may mislead users. We respectfully request prompt removal or suspension of the infringing content in accordance with your policies.\n\nThank you for your cooperation.";
+  "Group-IB acts as the authorized representative of {{client_name}}, the rights holder of {{trademark_name}} (Registration: {{registration_number}}, Jurisdiction: {{jurisdiction}}).\n\nThe reported account(s) and/or content are impersonating {{client_name}} through unauthorized use of the brand's name, logo, and protected identity elements.\n\nInfringing URLs:\n{{urls}}\n\nThis activity constitutes trademark infringement and brand impersonation, creates a false impression of affiliation, and may mislead users. We respectfully request prompt removal or suspension of the infringing content in accordance with your policies.\n\nThank you for your cooperation.";
 
 function createClientId(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -280,3 +280,4 @@ export function ClientManager(props: ClientManagerProps): JSX.Element {
     </section>
   );
 }
+

@@ -1,4 +1,5 @@
 import type { ProviderModule } from "./index";
+import { isProviderUrl } from "../config/providerRoutes";
 import { safeFillIfVisible } from "../utils/safeFill";
 
 const yourNameCandidates = ["your_name"];
@@ -33,7 +34,7 @@ function findPhoneInput(): HTMLInputElement | null {
 export const googleAbuseFormProvider: ProviderModule = {
   id: "google_abuse_form",
   isMatch(url: string): boolean {
-    return url.includes("support.google.com/sites/contact/corporate_impersonation");
+    return isProviderUrl("google_abuse_form", url);
   },
   autofill(payload): number {
     let filledCount = 0;
