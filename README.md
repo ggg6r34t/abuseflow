@@ -43,6 +43,7 @@ No auto-submission. No automated form navigation.
 ## Key Features
 
 - Floating in-page autofill button (bottom-right)
+- Popup control center (status, diagnostics, panel controls)
 - Analyst profile and multiple client profiles
 - Template-based description generation
 - Multi-step form detection (provider-agnostic)
@@ -99,6 +100,15 @@ It adapts by:
 - Filling only current-step fields
 - Allowing repeated autofill per step
 - Guiding analysts instead of automating navigation
+
+## UI Workflow
+
+AbuseFlow uses a split workflow for reliability and clarity:
+
+- Floating panel (primary): client selection, URL input, and `Autofill Current Step`
+- Popup control center: provider/status overview, open/focus panel, debug toggle, and last-run summary
+
+This avoids duplicate form UIs across surfaces and keeps in-page execution context where autofill runs.
 
 ## Installation (Development)
 

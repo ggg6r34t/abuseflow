@@ -6,8 +6,9 @@
     "build": "node build.mjs",
     "build:watch": "node build.mjs --watch",
     "typecheck": "tsc --noEmit",
+    "test:provider-dom": "node scripts/run-provider-dom-fixtures.mjs",
     "test:fixtures": "node scripts/run-fixture-tests.mjs",
-    "test": "npm run test:fixtures"
+    "test": "npm run test:fixtures && npm run test:provider-dom"
   },
   "dependencies": {
     "react": "^18.3.1",

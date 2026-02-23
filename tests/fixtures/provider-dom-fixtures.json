@@ -1,0 +1,81 @@
+[
+  {
+    "name": "cloudflare-basic-fill",
+    "providerId": "cloudflare_abuse_form",
+    "htmlFile": "tests/fixtures/providers/cloudflare/basic.html",
+    "payload": {
+      "analyst": {
+        "fullName": "Jane Analyst",
+        "email": "jane@company.test",
+        "company": "Analyst Co",
+        "signature": "Jane Analyst"
+      },
+      "client": {
+        "id": "client-1",
+        "clientName": "Client Corp",
+        "trademarkName": "ClientMark",
+        "registrationNumber": "US-12345",
+        "jurisdiction": "United States",
+        "defaultDescriptionTemplate": "desc"
+      },
+      "urls": ["https://example.test/a", "https://example.test/b"],
+      "description": "Trademark infringement details"
+    },
+    "expected": {
+      "filledCount": 10,
+      "values": {
+        "name:name": "Jane Analyst",
+        "name:email": "jane@company.test",
+        "name:email2": "jane@company.test",
+        "name:title": "Authorized Representative",
+        "name:company": "Already Set",
+        "name:trademark_symbol": "ClientMark",
+        "name:trademark_number": "US-12345",
+        "name:trademark_office": "USPTO",
+        "name:urls": "https://example.test/a\nhttps://example.test/b",
+        "name:justification": "Trademark infringement details",
+        "name:comments": "Submitted by authorized representative."
+      }
+    }
+  },
+  {
+    "name": "dynadot-basic-fill",
+    "providerId": "dynadot_abuse_form",
+    "htmlFile": "tests/fixtures/providers/dynadot/basic.html",
+    "payload": {
+      "analyst": {
+        "fullName": "John Doe",
+        "email": "john@example.test",
+        "phone": "+12025550123",
+        "companyAddress": "123 Main St",
+        "signature": "John Doe"
+      },
+      "client": {
+        "id": "client-2",
+        "clientName": "Brand Co",
+        "trademarkName": "BrandMark",
+        "registrationNumber": "EU-8888",
+        "jurisdiction": "European Union",
+        "defaultDescriptionTemplate": "desc"
+      },
+      "urls": ["https://bad.example/phish"],
+      "description": "Please remove this infringing content."
+    },
+    "expected": {
+      "filledCount": 10,
+      "values": {
+        "name:full_name_7": "John Doe",
+        "name:email_7": "john@example.test",
+        "name:email2_7": "john@example.test",
+        "name:phone_7": "+12025550123",
+        "name:address_7": "123 Main St",
+        "name:proxy_locations_7": "N/A",
+        "name:domain_path_7": "https://bad.example/phish",
+        "name:word_symbol_7": "BrandMark",
+        "name:reg_number_7": "EU-8888",
+        "name:reg_office_7": "Existing Office",
+        "name:comments_7": "Please remove this infringing content."
+      }
+    }
+  }
+]

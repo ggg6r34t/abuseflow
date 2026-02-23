@@ -10,6 +10,25 @@ interface AutofillRequestMessage {
   payload: AutofillPayload;
 }
 
+interface OpenPanelRequestMessage {
+  type: "ABUSEFLOW_OPEN_PANEL";
+}
+
+interface PanelSnapshotRequestMessage {
+  type: "ABUSEFLOW_PANEL_SNAPSHOT";
+}
+
+interface SetDebugModeRequestMessage {
+  type: "ABUSEFLOW_SET_DEBUG_MODE";
+  enabled: boolean;
+}
+
+type ContentScriptMessage =
+  | AutofillRequestMessage
+  | OpenPanelRequestMessage
+  | PanelSnapshotRequestMessage
+  | SetDebugModeRequestMessage;
+
 interface AutofillResponseMessage {
   ok: boolean;
   filledCount?: number;
@@ -20,6 +39,29 @@ interface AutofillResponseMessage {
     inputUrlCount: number;
     durationMs: number;
   };
+  error?: string;
+}
+
+interface PanelSnapshot {
+  panelOpen: boolean;
+  statusMessage: string;
+  statusTone: "info" | "error" | "success" | "";
+  selectedClientId: string;
+  debugMode: boolean;
+  lastRun: {
+    ok: boolean;
+    providerId: ProviderId;
+    filledCount: number;
+    notes: string[];
+    durationMs: number;
+    timestampMs: number;
+    error?: string;
+  } | null;
+}
+
+interface PanelSnapshotResponse {
+  ok: boolean;
+  snapshot?: PanelSnapshot;
   error?: string;
 }
 
@@ -55,6 +97,7 @@ let isPanelBusy = false;
 let floatingPositionTimerId: number | null = null;
 let floatingPositionListenersAttached = false;
 let historyListenersAttached = false;
+let lastAutofillReport: PanelSnapshot["lastRun"] = null;
 
 function getElementById<T extends HTMLElement>(id: string, ctor: { new (): T }): T | null {
   const element = document.getElementById(id);
@@ -228,6 +271,35 @@ function isDebugMode(): boolean {
   }
 }
 
+function setDebugMode(enabled: boolean): void {
+  try {
+    if (enabled) {
+      window.localStorage.setItem("abuseflow_debug_mode", "1");
+    } else {
+      window.localStorage.removeItem("abuseflow_debug_mode");
+    }
+  } catch {
+    return;
+  }
+}
+
+function getPanelSnapshot(): PanelSnapshot {
+  const panel = getElementById(ABUSEFLOW_PANEL_ID, HTMLDivElement);
+  const status = getElementById(ABUSEFLOW_STATUS_ID, HTMLDivElement);
+  const tone = status?.getAttribute("data-tone");
+  const statusTone: PanelSnapshot["statusTone"] =
+    tone === "info" || tone === "error" || tone === "success" ? tone : "";
+
+  return {
+    panelOpen: Boolean(panel && !panel.hidden),
+    statusMessage: status?.textContent ?? "",
+    statusTone,
+    selectedClientId,
+    debugMode: isDebugMode(),
+    lastRun: lastAutofillReport
+  };
+}
+
 function runAutofillForProvider(providerId: ProviderId, payload: AutofillPayload): { filledCount: number; notes: string[] } {
   const provider = getProviderById(providerId);
   if (!provider) {
@@ -338,10 +410,27 @@ async function handlePanelAutofill(): Promise<void> {
     if (isDebugMode()) {
       notes.push(`Debug: duration=${Date.now() - startedAt}ms`);
     }
+    lastAutofillReport = {
+      ok: true,
+      providerId,
+      filledCount,
+      notes,
+      durationMs: Date.now() - startedAt,
+      timestampMs: Date.now()
+    };
     const notesSuffix = notes.length > 0 ? ` ${notes.join(" ")}` : "";
     setPanelStatus(`Autofill completed. ${filledCount} field(s) updated.${notesSuffix}`, "success");
   } catch (error) {
     const message = error instanceof Error && error.message ? error.message : "Unable to autofill this form.";
+    lastAutofillReport = {
+      ok: false,
+      providerId,
+      filledCount: 0,
+      notes: [],
+      durationMs: Date.now() - startedAt,
+      timestampMs: Date.now(),
+      error: message
+    };
     setPanelStatus(message, "error");
   } finally {
     setPanelBusyState(false);
@@ -760,10 +849,28 @@ window.addEventListener("hashchange", syncUiForCurrentUrl);
 
 chrome.runtime.onMessage.addListener(
   (
-    message: AutofillRequestMessage,
+    message: ContentScriptMessage,
     _sender: chrome.runtime.MessageSender,
-    sendResponse: (response: AutofillResponseMessage) => void
+    sendResponse: (response: AutofillResponseMessage | PanelSnapshotResponse) => void
   ): boolean => {
+    if (message.type === "ABUSEFLOW_OPEN_PANEL") {
+      void togglePanel(true).then(() => {
+        sendResponse({ ok: true, snapshot: getPanelSnapshot() });
+      });
+      return true;
+    }
+
+    if (message.type === "ABUSEFLOW_PANEL_SNAPSHOT") {
+      sendResponse({ ok: true, snapshot: getPanelSnapshot() });
+      return false;
+    }
+
+    if (message.type === "ABUSEFLOW_SET_DEBUG_MODE") {
+      setDebugMode(Boolean(message.enabled));
+      sendResponse({ ok: true, snapshot: getPanelSnapshot() });
+      return false;
+    }
+
     if (message.type !== "ABUSEFLOW_AUTOFILL") {
       sendResponse({ ok: false, error: "Unsupported message type." });
       return false;
