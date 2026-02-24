@@ -17,6 +17,10 @@ import {
   type ClientProfile,
 } from "../storage/profileStore";
 import { detectProviderFromUrl, parseUrls } from "../utils/urlDetector";
+import type {
+  DescriptionTemplateType,
+  DescriptionTone
+} from "../utils/descriptionPresets";
 
 interface TabContext {
   tabId: number | null;
@@ -30,6 +34,8 @@ interface PanelSnapshot {
   statusTone: "info" | "error" | "success" | "";
   selectedClientId: string;
   draftUrlsText: string;
+  selectedTemplateType: DescriptionTemplateType;
+  selectedTone: DescriptionTone;
   debugMode: boolean;
   lastRun: {
     ok: boolean;
@@ -254,6 +260,8 @@ export function Popup(): JSX.Element {
       pageUrl: string;
       clientId: string;
       urlsText: string;
+      descriptionTemplateType: DescriptionTemplateType;
+      descriptionTone: DescriptionTone;
       ok: boolean;
       filledCount: number;
       notes: string[];
@@ -529,6 +537,8 @@ export function Popup(): JSX.Element {
     providerId: ProviderId;
     clientId: string;
     urlsText: string;
+    descriptionTemplateType?: DescriptionTemplateType;
+    descriptionTone?: DescriptionTone;
   }): Promise<void> {
     setRerunStatus("");
     if (!tabContext.tabId) {
@@ -541,6 +551,8 @@ export function Popup(): JSX.Element {
         providerId: record.providerId,
         clientId: record.clientId,
         urlsText: record.urlsText,
+        descriptionTemplateType: record.descriptionTemplateType ?? "client_default",
+        descriptionTone: record.descriptionTone ?? "neutral",
       })) as PanelSnapshotResponse;
       if (!response?.ok) {
         setRerunStatus(response?.error ?? "Unable to rerun this submission.");

@@ -11,6 +11,10 @@ import {
   type ClientProfile,
 } from "./storage/profileStore";
 import { buildAutofillPayload } from "./utils/autofillPayload";
+import {
+  type DescriptionTemplateType,
+  type DescriptionTone
+} from "./utils/descriptionPresets";
 import { detectProviderFromUrl } from "./utils/urlDetector";
 
 interface AutofillRequestMessage {
@@ -37,6 +41,8 @@ interface RerunFromHistoryRequestMessage {
   providerId: ProviderId;
   clientId: string;
   urlsText: string;
+  descriptionTemplateType?: DescriptionTemplateType;
+  descriptionTone?: DescriptionTone;
 }
 
 type ContentScriptMessage =
@@ -65,6 +71,8 @@ interface PanelSnapshot {
   statusTone: "info" | "error" | "success" | "";
   selectedClientId: string;
   draftUrlsText: string;
+  selectedTemplateType: DescriptionTemplateType;
+  selectedTone: DescriptionTone;
   debugMode: boolean;
   lastRun: {
     ok: boolean;
@@ -93,6 +101,8 @@ const ABUSEFLOW_BUTTON_ID = "abuseflow-floating-button";
 const ABUSEFLOW_PANEL_ID = "abuseflow-floating-panel";
 const ABUSEFLOW_CLIENT_SELECT_ID = "abuseflow-client-select";
 const ABUSEFLOW_URL_INPUT_ID = "abuseflow-url-input";
+const ABUSEFLOW_TEMPLATE_SELECT_ID = "abuseflow-template-select";
+const ABUSEFLOW_TONE_SELECT_ID = "abuseflow-tone-select";
 const ABUSEFLOW_AUTOFILL_BUTTON_ID = "abuseflow-autofill-button";
 const ABUSEFLOW_STATUS_ID = "abuseflow-status";
 const ABUSEFLOW_SETTINGS_BUTTON_ID = "abuseflow-open-settings";
@@ -221,6 +231,38 @@ function createPanel(): HTMLDivElement {
   urlHint.textContent =
     "Tip: paste one URL per line, then run autofill for the current step.";
 
+  const templateLabel = document.createElement("label");
+  templateLabel.textContent = "Template";
+  templateLabel.className = "abuseflow-label";
+  templateLabel.htmlFor = ABUSEFLOW_TEMPLATE_SELECT_ID;
+
+  const templateSelect = document.createElement("select");
+  templateSelect.id = ABUSEFLOW_TEMPLATE_SELECT_ID;
+  templateSelect.className = "abuseflow-select";
+  templateSelect.innerHTML = `
+    <option value="client_default">Client Default</option>
+    <option value="impersonation">Impersonation</option>
+    <option value="trademark">Trademark</option>
+    <option value="phishing">Phishing</option>
+    <option value="scam">Scam</option>
+    <option value="other">Other</option>
+  `;
+
+  const toneLabel = document.createElement("label");
+  toneLabel.textContent = "Tone";
+  toneLabel.className = "abuseflow-label";
+  toneLabel.htmlFor = ABUSEFLOW_TONE_SELECT_ID;
+
+  const toneSelect = document.createElement("select");
+  toneSelect.id = ABUSEFLOW_TONE_SELECT_ID;
+  toneSelect.className = "abuseflow-select";
+  toneSelect.innerHTML = `
+    <option value="neutral">Neutral</option>
+    <option value="firm">Firm</option>
+    <option value="urgent">Urgent</option>
+    <option value="legal">Legal</option>
+  `;
+
   const autofillButton = document.createElement("button");
   autofillButton.id = ABUSEFLOW_AUTOFILL_BUTTON_ID;
   autofillButton.type = "button";
@@ -238,6 +280,10 @@ function createPanel(): HTMLDivElement {
   panel.appendChild(urlLabel);
   panel.appendChild(urlTextarea);
   panel.appendChild(urlHint);
+  panel.appendChild(templateLabel);
+  panel.appendChild(templateSelect);
+  panel.appendChild(toneLabel);
+  panel.appendChild(toneSelect);
   panel.appendChild(autofillButton);
   panel.appendChild(status);
 
@@ -342,9 +388,33 @@ function getPanelSnapshot(): PanelSnapshot {
     selectedClientId,
     draftUrlsText:
       getElementById(ABUSEFLOW_URL_INPUT_ID, HTMLTextAreaElement)?.value ?? "",
+    selectedTemplateType: getSelectedTemplateType(),
+    selectedTone: getSelectedTone(),
     debugMode: isDebugMode(),
     lastRun: lastAutofillReport,
   };
+}
+
+function getSelectedTemplateType(): DescriptionTemplateType {
+  const value = getElementById(ABUSEFLOW_TEMPLATE_SELECT_ID, HTMLSelectElement)?.value;
+  if (
+    value === "impersonation" ||
+    value === "trademark" ||
+    value === "phishing" ||
+    value === "scam" ||
+    value === "other"
+  ) {
+    return value;
+  }
+  return "client_default";
+}
+
+function getSelectedTone(): DescriptionTone {
+  const value = getElementById(ABUSEFLOW_TONE_SELECT_ID, HTMLSelectElement)?.value;
+  if (value === "firm" || value === "urgent" || value === "legal") {
+    return value;
+  }
+  return "neutral";
 }
 
 function runAutofillForProvider(
@@ -448,7 +518,12 @@ function populateClientOptions(clients: ClientProfile[]): void {
   updateAutofillButtonState();
 }
 
-function hydratePanelDraft(clientId: string, urlsText: string): void {
+function hydratePanelDraft(
+  clientId: string,
+  urlsText: string,
+  templateType: DescriptionTemplateType = "client_default",
+  tone: DescriptionTone = "neutral"
+): void {
   const clientSelect = getElementById(
     ABUSEFLOW_CLIENT_SELECT_ID,
     HTMLSelectElement,
@@ -457,6 +532,8 @@ function hydratePanelDraft(clientId: string, urlsText: string): void {
     ABUSEFLOW_URL_INPUT_ID,
     HTMLTextAreaElement,
   );
+  const templateSelect = getElementById(ABUSEFLOW_TEMPLATE_SELECT_ID, HTMLSelectElement);
+  const toneSelect = getElementById(ABUSEFLOW_TONE_SELECT_ID, HTMLSelectElement);
   if (
     clientSelect &&
     Array.from(clientSelect.options).some((option) => option.value === clientId)
@@ -466,6 +543,12 @@ function hydratePanelDraft(clientId: string, urlsText: string): void {
   }
   if (urlTextarea) {
     urlTextarea.value = urlsText;
+  }
+  if (templateSelect) {
+    templateSelect.value = templateType;
+  }
+  if (toneSelect) {
+    toneSelect.value = tone;
   }
   updateAutofillButtonState();
 }
@@ -535,7 +618,12 @@ async function handlePanelAutofill(): Promise<void> {
       HTMLTextAreaElement,
     );
     const urlsText = urlTextarea?.value ?? "";
-    const payload = buildAutofillPayload(analyst, client, urlsText);
+    const descriptionTemplateType = getSelectedTemplateType();
+    const descriptionTone = getSelectedTone();
+    const payload = buildAutofillPayload(analyst, client, urlsText, {
+      templateType: descriptionTemplateType,
+      tone: descriptionTone
+    });
     const flags = await getFeatureFlags();
     const missingRequired = getMissingRequiredInputs(payload, providerId);
     if (flags.enableSafetyGuardrails && missingRequired.length > 0) {
@@ -554,6 +642,8 @@ async function handlePanelAutofill(): Promise<void> {
         pageUrl: window.location.href,
         clientId: client.id,
         urlsText,
+        descriptionTemplateType,
+        descriptionTone,
         ok: false,
         filledCount: 0,
         notes: [],
@@ -582,6 +672,8 @@ async function handlePanelAutofill(): Promise<void> {
       pageUrl: window.location.href,
       clientId: client.id,
       urlsText,
+      descriptionTemplateType,
+      descriptionTone,
       ok: true,
       filledCount,
       notes,
@@ -614,6 +706,8 @@ async function handlePanelAutofill(): Promise<void> {
       urlsText:
         getElementById(ABUSEFLOW_URL_INPUT_ID, HTMLTextAreaElement)?.value ??
         "",
+      descriptionTemplateType: getSelectedTemplateType(),
+      descriptionTone: getSelectedTone(),
       ok: false,
       filledCount: 0,
       notes: [],
@@ -1122,7 +1216,12 @@ chrome.runtime.onMessage.addListener(
       void togglePanel(true)
         .then(async () => {
           await refreshClientsInPanel();
-          hydratePanelDraft(message.clientId, message.urlsText);
+          hydratePanelDraft(
+            message.clientId,
+            message.urlsText,
+            message.descriptionTemplateType ?? "client_default",
+            message.descriptionTone ?? "neutral"
+          );
           await handlePanelAutofill();
           sendResponse({ ok: true, snapshot: getPanelSnapshot() });
         })

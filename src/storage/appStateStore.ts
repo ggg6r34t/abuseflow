@@ -1,4 +1,8 @@
 import type { ProviderId } from "../providers";
+import type {
+  DescriptionTemplateType,
+  DescriptionTone
+} from "../utils/descriptionPresets";
 
 export type ExperienceTier = "core" | "advanced" | "enterprise";
 
@@ -33,6 +37,8 @@ export interface RunRecord {
   pageUrl: string;
   clientId: string;
   urlsText: string;
+  descriptionTemplateType: DescriptionTemplateType;
+  descriptionTone: DescriptionTone;
   ok: boolean;
   filledCount: number;
   notes: string[];
@@ -220,6 +226,20 @@ function normalizeRunRecord(value: unknown): RunRecord | null {
     pageUrl: value.pageUrl,
     clientId: typeof value.clientId === "string" ? value.clientId : "",
     urlsText: typeof value.urlsText === "string" ? value.urlsText : "",
+    descriptionTemplateType:
+      value.descriptionTemplateType === "impersonation" ||
+      value.descriptionTemplateType === "trademark" ||
+      value.descriptionTemplateType === "phishing" ||
+      value.descriptionTemplateType === "scam" ||
+      value.descriptionTemplateType === "other"
+        ? value.descriptionTemplateType
+        : "client_default",
+    descriptionTone:
+      value.descriptionTone === "firm" ||
+      value.descriptionTone === "urgent" ||
+      value.descriptionTone === "legal"
+        ? value.descriptionTone
+        : "neutral",
     ok: Boolean(value.ok),
     filledCount: typeof value.filledCount === "number" ? value.filledCount : 0,
     notes: Array.isArray(value.notes) ? value.notes.filter((note) => typeof note === "string") : [],
