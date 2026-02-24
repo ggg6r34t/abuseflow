@@ -44,7 +44,7 @@ No auto-submission. No automated form navigation.
 
 - Floating in-page autofill button (bottom-right)
 - Popup control center (status, diagnostics, panel controls)
-- Tiered experience modes (`Core`, `Advanced`, `Enterprise`) to keep default UX minimal
+- Tiered experience modes (`Core`, `Advanced`, `Sensei`) to keep default UX minimal
 - Analyst profile and multiple client profiles
 - Template-based description generation
 - Multi-step form detection (provider-agnostic)
@@ -117,7 +117,7 @@ This avoids duplicate form UIs across surfaces and keeps in-page execution conte
 
 - `Core` (default): minimal controls for support status, readiness checks, and panel actions
 - `Advanced`: adds diagnostics, URL intelligence, playbooks, run history, and evidence export
-- `Enterprise`: adds case session metadata to support incident/case-driven workflows
+- `Sensei`: adds case session metadata to support incident/case-driven workflows
 
 ## Installation (Development)
 
@@ -140,7 +140,7 @@ Configure via extension options:
 - Analyst profile (name, email, signature)
 - Client profiles (trademark, jurisdiction, description templates)
 
-All data is stored locally using `chrome.storage.sync`.
+All data is stored locally. Client profiles are stored in `chrome.storage.local` for scale and reliability; analyst/global settings use `chrome.storage.sync`.
 
 ## Security and Compliance
 

@@ -6,6 +6,8 @@ import { build } from "esbuild";
 const tempDir = ".tmp-tests";
 const entryPoint = "src/utils/urlDetector.ts";
 const outFile = path.join(tempDir, "urlDetector.mjs");
+const appStateOutFile = path.join(tempDir, "appStateStore.mjs");
+const profileStoreOutFile = path.join(tempDir, "profileStore.mjs");
 
 function assert(condition, message) {
   if (!condition) {
@@ -22,12 +24,14 @@ async function bundleUrlDetector() {
   await rm(tempDir, { recursive: true, force: true });
   await mkdir(tempDir, { recursive: true });
   await build({
-    entryPoints: [entryPoint],
+    entryPoints: [entryPoint, "src/storage/appStateStore.ts", "src/storage/profileStore.ts"],
     bundle: true,
     format: "esm",
     platform: "node",
     target: "node20",
-    outfile: outFile,
+    outdir: tempDir,
+    entryNames: "[name]",
+    outExtension: { ".js": ".mjs" },
     sourcemap: false,
     minify: false
   });
@@ -36,11 +40,18 @@ async function bundleUrlDetector() {
 async function run() {
   await bundleUrlDetector();
   const moduleUrl = pathToFileURL(path.resolve(outFile)).href;
+  const appStateUrl = pathToFileURL(path.resolve(appStateOutFile)).href;
+  const profileStoreUrl = pathToFileURL(path.resolve(profileStoreOutFile)).href;
   const mod = await import(moduleUrl);
+  const appStateMod = await import(appStateUrl);
+  const profileStoreMod = await import(profileStoreUrl);
   const { detectProviderFromUrl, parseUrls } = mod;
+  const { sanitizeRunHistory } = appStateMod;
+  const { buildClientMigrationPlan } = profileStoreMod;
 
   const routingFixtures = await loadJson("tests/fixtures/url-routing.json");
   const parseFixtures = await loadJson("tests/fixtures/parse-urls.json");
+  const stateFixtures = await loadJson("tests/fixtures/state-behavior.json");
 
   for (const fixture of routingFixtures) {
     const actual = detectProviderFromUrl(fixture.url);
@@ -70,8 +81,26 @@ async function run() {
     "manifest content script matches are out of sync with providerRoutes.json"
   );
 
+  for (const fixture of stateFixtures.runHistoryPruneCases) {
+    const actual = sanitizeRunHistory(fixture.records, fixture.flags, fixture.nowMs);
+    const actualIds = actual.map((item) => item.id);
+    assert(
+      JSON.stringify(actualIds) === JSON.stringify(fixture.expectedIds),
+      `run history prune fixture failed (${fixture.name})\nexpected=${JSON.stringify(fixture.expectedIds)}\nactual=${JSON.stringify(actualIds)}`
+    );
+  }
+
+  for (const fixture of stateFixtures.migrationPlanCases) {
+    const actual = buildClientMigrationPlan(fixture.localIds, fixture.legacyClients);
+    assert(
+      actual.shouldMigrate === fixture.expected.shouldMigrate &&
+        JSON.stringify(actual.ids) === JSON.stringify(fixture.expected.ids),
+      `migration plan fixture failed (${fixture.name})\nexpected=${JSON.stringify(fixture.expected)}\nactual=${JSON.stringify(actual)}`
+    );
+  }
+
   console.log(
-    `Fixture tests passed: routing=${routingFixtures.length}, parse=${parseFixtures.length}, manifest_sync=1`
+    `Fixture tests passed: routing=${routingFixtures.length}, parse=${parseFixtures.length}, manifest_sync=1, state=${stateFixtures.runHistoryPruneCases.length + stateFixtures.migrationPlanCases.length}`
   );
 }
 

@@ -11,6 +11,9 @@ export interface FeatureFlags {
   enableUrlIntel: boolean;
   enableRunHistory: boolean;
   enableSafetyGuardrails: boolean;
+  autoPruneRunHistory: boolean;
+  runHistoryMaxEntries: number;
+  runHistoryMaxAgeDays: number;
 }
 
 export interface CaseSession {
@@ -41,7 +44,8 @@ export interface RunRecord {
 const FEATURE_FLAGS_KEY = "abuseflow_feature_flags";
 const CASE_SESSION_KEY = "abuseflow_case_session";
 const RUN_HISTORY_KEY = "abuseflow_run_history";
-const RUN_HISTORY_LIMIT = 100;
+const DEFAULT_RUN_HISTORY_MAX_ENTRIES = 300;
+const DEFAULT_RUN_HISTORY_MAX_AGE_DAYS = 90;
 
 function getNowMs(): number {
   return Date.now();
@@ -88,6 +92,14 @@ function normalizeTier(value: unknown): ExperienceTier {
   return value === "advanced" || value === "enterprise" ? value : "core";
 }
 
+function normalizePositiveInteger(value: unknown, fallback: number, min: number, max: number): number {
+  const parsed = typeof value === "number" ? value : Number.parseInt(String(value), 10);
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+  return Math.min(max, Math.max(min, Math.trunc(parsed)));
+}
+
 function normalizeFlags(value: unknown): FeatureFlags {
   const base: FeatureFlags = {
     tier: "core",
@@ -97,7 +109,10 @@ function normalizeFlags(value: unknown): FeatureFlags {
     enablePlaybooks: false,
     enableUrlIntel: false,
     enableRunHistory: false,
-    enableSafetyGuardrails: true
+    enableSafetyGuardrails: true,
+    autoPruneRunHistory: true,
+    runHistoryMaxEntries: DEFAULT_RUN_HISTORY_MAX_ENTRIES,
+    runHistoryMaxAgeDays: DEFAULT_RUN_HISTORY_MAX_AGE_DAYS
   };
   if (!isObject(value)) {
     return base;
@@ -111,7 +126,20 @@ function normalizeFlags(value: unknown): FeatureFlags {
     enablePlaybooks: Boolean(value.enablePlaybooks),
     enableUrlIntel: Boolean(value.enableUrlIntel),
     enableRunHistory: Boolean(value.enableRunHistory),
-    enableSafetyGuardrails: value.enableSafetyGuardrails !== false
+    enableSafetyGuardrails: value.enableSafetyGuardrails !== false,
+    autoPruneRunHistory: value.autoPruneRunHistory !== false,
+    runHistoryMaxEntries: normalizePositiveInteger(
+      value.runHistoryMaxEntries,
+      DEFAULT_RUN_HISTORY_MAX_ENTRIES,
+      20,
+      1000
+    ),
+    runHistoryMaxAgeDays: normalizePositiveInteger(
+      value.runHistoryMaxAgeDays,
+      DEFAULT_RUN_HISTORY_MAX_AGE_DAYS,
+      7,
+      3650
+    )
   };
   if (tier === "core") {
     normalized.enableCaseSession = false;
@@ -137,6 +165,21 @@ function normalizeFlags(value: unknown): FeatureFlags {
     normalized.enableCaseSession = true;
   }
   return normalized;
+}
+
+export function sanitizeRunHistory(
+  records: RunRecord[],
+  flags: Pick<FeatureFlags, "autoPruneRunHistory" | "runHistoryMaxEntries" | "runHistoryMaxAgeDays">,
+  nowMs = getNowMs()
+): RunRecord[] {
+  const sorted = [...records].sort((a, b) => b.timestampMs - a.timestampMs);
+  const filtered = flags.autoPruneRunHistory
+    ? sorted.filter((record) => {
+        const maxAgeMs = flags.runHistoryMaxAgeDays * 24 * 60 * 60 * 1000;
+        return nowMs - record.timestampMs <= maxAgeMs;
+      })
+    : sorted;
+  return filtered.slice(0, flags.runHistoryMaxEntries);
 }
 
 function normalizeCaseSession(value: unknown): CaseSession | null {
@@ -231,25 +274,31 @@ export async function clearCaseSession(): Promise<void> {
 
 export async function listRunHistory(): Promise<RunRecord[]> {
   const raw = await readStorage<unknown>(RUN_HISTORY_KEY);
+  const flags = await getFeatureFlags();
   if (!Array.isArray(raw)) {
     return [];
   }
-  return raw
+  const normalized = raw
     .map((item) => normalizeRunRecord(item))
-    .filter((item): item is RunRecord => item !== null)
-    .sort((a, b) => b.timestampMs - a.timestampMs)
-    .slice(0, RUN_HISTORY_LIMIT);
+    .filter((item): item is RunRecord => item !== null);
+  const sanitized = sanitizeRunHistory(normalized, flags);
+  if (sanitized.length !== normalized.length) {
+    await writeStorage(RUN_HISTORY_KEY, sanitized);
+  }
+  return sanitized;
 }
 
 export async function appendRunRecord(record: Omit<RunRecord, "id">): Promise<void> {
+  const flags = await getFeatureFlags();
   const existing = await listRunHistory();
-  const next: RunRecord[] = [
+  const combined: RunRecord[] = [
     {
       ...record,
       id: createId("run")
     },
     ...existing
-  ].slice(0, RUN_HISTORY_LIMIT);
+  ];
+  const next = sanitizeRunHistory(combined, flags);
   await writeStorage(RUN_HISTORY_KEY, next);
 }
 

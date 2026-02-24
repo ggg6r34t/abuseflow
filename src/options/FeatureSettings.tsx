@@ -13,7 +13,10 @@ const defaults: FeatureFlags = {
   enablePlaybooks: false,
   enableUrlIntel: false,
   enableRunHistory: false,
-  enableSafetyGuardrails: true
+  enableSafetyGuardrails: true,
+  autoPruneRunHistory: true,
+  runHistoryMaxEntries: 300,
+  runHistoryMaxAgeDays: 90
 };
 
 const inputStyle = {
@@ -73,7 +76,7 @@ export function FeatureSettings(props: FeatureSettingsProps): JSX.Element {
     >
       <h2 style={{ margin: 0, fontSize: "16px", color: "#0e3172" }}>Experience Tier</h2>
       <small style={{ color: "#506177" }}>
-        Keep daily usage minimal with Core, then enable Advanced or Enterprise capabilities as needed.
+        Keep daily usage minimal with Core, then enable Advanced or Sensei capabilities as needed.
       </small>
       <select
         value={flags.tier}
@@ -85,7 +88,7 @@ export function FeatureSettings(props: FeatureSettingsProps): JSX.Element {
       >
         <option value="core">Core (minimal)</option>
         <option value="advanced">Advanced (diagnostics + history)</option>
-        <option value="enterprise">Enterprise (adds case session)</option>
+        <option value="enterprise">Sensei (adds case session)</option>
       </select>
 
       <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px" }}>
@@ -99,6 +102,53 @@ export function FeatureSettings(props: FeatureSettingsProps): JSX.Element {
         />
         Enable required-data guardrails before autofill
       </label>
+      <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px" }}>
+        <input
+          type="checkbox"
+          checked={flags.autoPruneRunHistory}
+          onChange={(event) =>
+            setFlags((prev) => ({ ...prev, autoPruneRunHistory: event.target.checked }))
+          }
+          disabled={isLoading || isSaving}
+        />
+        Auto-prune run history
+      </label>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+        <label style={{ display: "grid", gap: "4px", fontSize: "12px" }}>
+          <span>Max history entries</span>
+          <input
+            type="number"
+            min={20}
+            max={1000}
+            value={flags.runHistoryMaxEntries}
+            onChange={(event) =>
+              setFlags((prev) => ({
+                ...prev,
+                runHistoryMaxEntries: Number.parseInt(event.target.value || "0", 10)
+              }))
+            }
+            disabled={isLoading || isSaving}
+            style={inputStyle}
+          />
+        </label>
+        <label style={{ display: "grid", gap: "4px", fontSize: "12px" }}>
+          <span>Max age (days)</span>
+          <input
+            type="number"
+            min={7}
+            max={3650}
+            value={flags.runHistoryMaxAgeDays}
+            onChange={(event) =>
+              setFlags((prev) => ({
+                ...prev,
+                runHistoryMaxAgeDays: Number.parseInt(event.target.value || "0", 10)
+              }))
+            }
+            disabled={isLoading || isSaving}
+            style={inputStyle}
+          />
+        </label>
+      </div>
 
       <button
         type="button"
@@ -122,4 +172,3 @@ export function FeatureSettings(props: FeatureSettingsProps): JSX.Element {
     </section>
   );
 }
-

@@ -64,6 +64,9 @@ const emptyFlags: FeatureFlags = {
   enableUrlIntel: false,
   enableRunHistory: false,
   enableSafetyGuardrails: true,
+  autoPruneRunHistory: true,
+  runHistoryMaxEntries: 300,
+  runHistoryMaxAgeDays: 90,
 };
 
 const shortenerDomains = [
@@ -83,6 +86,16 @@ const playbooks: Partial<Record<ProviderId, string>> = {
   google_abuse_form:
     "Fill in one content URL per line; keep description concise and policy-focused.",
 };
+
+function formatTierLabel(tier: FeatureFlags["tier"]): string {
+  if (tier === "enterprise") {
+    return "Sensei";
+  }
+  if (tier === "advanced") {
+    return "Advanced";
+  }
+  return "Core";
+}
 
 async function getCurrentTabContext(): Promise<TabContext> {
   const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -250,6 +263,7 @@ export function Popup(): JSX.Element {
     }>
   >([]);
   const [status, setStatus] = useState("");
+  const [rerunStatus, setRerunStatus] = useState("");
   const [isBusy, setIsBusy] = useState(false);
   const [redactEvidence, setRedactEvidence] = useState(true);
   const isCore = flags.tier === "core";
@@ -516,8 +530,9 @@ export function Popup(): JSX.Element {
     clientId: string;
     urlsText: string;
   }): Promise<void> {
+    setRerunStatus("");
     if (!tabContext.tabId) {
-      setStatus("No active tab available for rerun.");
+      setRerunStatus("No active tab available for rerun.");
       return;
     }
     try {
@@ -528,14 +543,14 @@ export function Popup(): JSX.Element {
         urlsText: record.urlsText,
       })) as PanelSnapshotResponse;
       if (!response?.ok) {
-        setStatus(response?.error ?? "Unable to rerun this submission.");
+        setRerunStatus(response?.error ?? "Unable to rerun this submission.");
         return;
       }
       setSnapshot(response.snapshot ?? null);
       await refreshState();
-      setStatus("Rerun completed.");
+      setRerunStatus("Rerun completed.");
     } catch {
-      setStatus("Unable to rerun this submission.");
+      setRerunStatus("Unable to rerun this submission.");
     }
   }
 
@@ -585,11 +600,11 @@ export function Popup(): JSX.Element {
             }}
             onClick={() => void handleSetTier("enterprise")}
           >
-            Enterprise
+            Sensei
           </button>
         </div>
         <div>
-          <strong>Active tier:</strong> {flags.tier}
+          <strong>Active tier:</strong> {formatTierLabel(flags.tier)}
         </div>
       </section>
 
@@ -728,6 +743,11 @@ export function Popup(): JSX.Element {
               >
                 Rerun Latest
               </button>
+            )}
+            {rerunStatus && (
+              <div style={{ color: rerunStatus.includes("completed") ? "#067647" : "#b42318" }}>
+                {rerunStatus}
+              </div>
             )}
           </>
         )}
@@ -883,6 +903,11 @@ export function Popup(): JSX.Element {
           >
             Clear History
           </button>
+          {rerunStatus && (
+            <div style={{ color: rerunStatus.includes("completed") ? "#067647" : "#b42318" }}>
+              {rerunStatus}
+            </div>
+          )}
         </section>
       )}
 

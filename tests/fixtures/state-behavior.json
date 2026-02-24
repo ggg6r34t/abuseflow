@@ -1,0 +1,90 @@
+{
+  "runHistoryPruneCases": [
+    {
+      "name": "prunes by age and count",
+      "nowMs": 1000000,
+      "flags": {
+        "autoPruneRunHistory": true,
+        "runHistoryMaxEntries": 2,
+        "runHistoryMaxAgeDays": 1
+      },
+      "records": [
+        {
+          "id": "newest",
+          "providerId": "facebook_abuse_form",
+          "pageUrl": "https://example.com/a",
+          "clientId": "c1",
+          "urlsText": "https://example.com/a",
+          "ok": true,
+          "filledCount": 3,
+          "notes": [],
+          "durationMs": 100,
+          "timestampMs": 999000
+        },
+        {
+          "id": "older-keep",
+          "providerId": "x_abuse_form",
+          "pageUrl": "https://example.com/b",
+          "clientId": "c1",
+          "urlsText": "https://example.com/b",
+          "ok": true,
+          "filledCount": 2,
+          "notes": [],
+          "durationMs": 100,
+          "timestampMs": 998000
+        },
+        {
+          "id": "old-prune",
+          "providerId": "google_abuse_form",
+          "pageUrl": "https://example.com/c",
+          "clientId": "c1",
+          "urlsText": "https://example.com/c",
+          "ok": false,
+          "filledCount": 0,
+          "notes": [],
+          "durationMs": 100,
+          "timestampMs": 1
+        }
+      ],
+      "expectedIds": ["newest", "older-keep"]
+    }
+  ],
+  "migrationPlanCases": [
+    {
+      "name": "migrates when local empty and legacy present",
+      "localIds": [],
+      "legacyClients": [
+        {
+          "id": "c1",
+          "clientName": "Acme",
+          "trademarkName": "Acme",
+          "registrationNumber": "R1",
+          "jurisdiction": "US",
+          "defaultDescriptionTemplate": "x"
+        }
+      ],
+      "expected": {
+        "shouldMigrate": true,
+        "ids": ["c1"]
+      }
+    },
+    {
+      "name": "does not migrate when local already has ids",
+      "localIds": ["existing"],
+      "legacyClients": [
+        {
+          "id": "c1",
+          "clientName": "Acme",
+          "trademarkName": "Acme",
+          "registrationNumber": "R1",
+          "jurisdiction": "US",
+          "defaultDescriptionTemplate": "x"
+        }
+      ],
+      "expected": {
+        "shouldMigrate": false,
+        "ids": ["c1"]
+      }
+    }
+  ]
+}

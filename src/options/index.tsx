@@ -2,6 +2,7 @@ import { createRoot } from "react-dom/client";
 import { useState } from "react";
 import { AnalystSettings } from "./AnalystSettings";
 import { ClientManager } from "./ClientManager";
+import { DataPortability } from "./DataPortability";
 import { FeatureSettings } from "./FeatureSettings";
 
 function OptionsApp(): JSX.Element {
@@ -27,6 +28,7 @@ function OptionsApp(): JSX.Element {
       <FeatureSettings onSaved={() => setVersion((v) => v + 1)} />
       <AnalystSettings onSaved={() => setVersion((v) => v + 1)} />
       <ClientManager onSaved={() => setVersion((v) => v + 1)} />
+      <DataPortability onImported={() => setVersion((v) => v + 1)} />
     </main>
   );
 }

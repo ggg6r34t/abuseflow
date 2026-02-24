@@ -100,6 +100,8 @@ const ABUSEFLOW_BUTTON_ICON_URL = chrome.runtime.getURL(
   "public/icons/button_icon48.png",
 );
 const CLIENT_PROFILES_KEY = "abuseflow_client_profiles";
+const CLIENT_PROFILE_IDS_KEY = "abuseflow_client_profile_ids";
+const CLIENT_PROFILE_KEY_PREFIX = "abuseflow_client_profile_";
 const BASE_BUTTON_RIGHT = 20;
 const BASE_BUTTON_BOTTOM = 20;
 const BUTTON_SIZE_PX = 48;
@@ -951,7 +953,16 @@ function handleStorageChange(
   changes: { [key: string]: chrome.storage.StorageChange },
   areaName: "sync" | "local" | "managed" | "session",
 ): void {
-  if (areaName !== "sync" || !changes[CLIENT_PROFILES_KEY]) {
+  const hasLegacySyncChange =
+    areaName === "sync" && Boolean(changes[CLIENT_PROFILES_KEY]);
+  const hasLocalClientChange =
+    areaName === "local" &&
+    Object.keys(changes).some(
+      (key) =>
+        key === CLIENT_PROFILE_IDS_KEY ||
+        key.startsWith(CLIENT_PROFILE_KEY_PREFIX),
+    );
+  if (!hasLegacySyncChange && !hasLocalClientChange) {
     return;
   }
   if (getElementById(ABUSEFLOW_PANEL_ID, HTMLDivElement)) {

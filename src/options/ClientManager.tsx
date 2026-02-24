@@ -133,8 +133,12 @@ export function ClientManager(props: ClientManagerProps): JSX.Element {
       setEditing(normalized);
       setStatus("Client profile saved.");
       onSaved();
-    } catch {
-      setError("Unable to save client profile.");
+    } catch (err) {
+      const message =
+        err instanceof Error && err.message
+          ? err.message
+          : "Unable to save client profile.";
+      setError(message);
       setStatus("");
     } finally {
       setIsSaving(false);
@@ -163,8 +167,12 @@ export function ClientManager(props: ClientManagerProps): JSX.Element {
       }
       setStatus("Client profile deleted.");
       onSaved();
-    } catch {
-      setError("Unable to delete client profile.");
+    } catch (err) {
+      const message =
+        err instanceof Error && err.message
+          ? err.message
+          : "Unable to delete client profile.";
+      setError(message);
       setStatus("");
     } finally {
       setIsDeleting(false);
@@ -309,4 +317,3 @@ export function ClientManager(props: ClientManagerProps): JSX.Element {
     </section>
   );
 }
-
